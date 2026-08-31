@@ -1,0 +1,1234 @@
+<title>Überlagerte Schwingungen</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --paper: #f3f4f6;
+    --ink: #1b2430;
+    --ink-soft: #5c6675;
+    --panel: #ffffff;
+    --panel-2: #edeff2;
+    --line: #d8dbe1;
+    --accent: #2f5d8a;
+    --accent-ink: #1d3c57;
+    --warn: #b25c22;
+    --scope-bg: #fbfbfc;
+    --scope-grid: #e4e7eb;
+    --scope-grid-mid: #c7ccd3;
+    --scope-trace: #2f6fb0;
+    --scope-text: #8b95a3;
+    --focus: #2f5d8a;
+    --btn-ink: #ffffff;
+    --w1: #2f5d8a;
+    --w2: #3f7d68;
+    --w3: #9a6a2a;
+    --w4: #6a5490;
+    --w5: #97434f;
+    --result-trace: #262b33;
+    --shadow: 0 1px 2px rgba(20, 26, 36, 0.05), 0 8px 24px -12px rgba(20, 26, 36, 0.14);
+  }
+
+  /* Deliberately light-only: this tool is embedded in Moodle pages with
+     varying system themes, so the palette is fixed rather than following
+     prefers-color-scheme. */
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    padding: clamp(14px, 3vw, 28px);
+    display: flex;
+    justify-content: center;
+  }
+
+  .mono { font-family: "IBM Plex Mono", ui-monospace, "SF Mono", monospace; font-variant-numeric: tabular-nums; }
+
+  .sheet { width: 100%; max-width: 760px; display: flex; flex-direction: column; gap: 16px; }
+
+  .lang-toggle { display: flex; justify-content: flex-end; gap: 4px; }
+  button.lang-btn {
+    font-family: "IBM Plex Mono", monospace; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em;
+    color: var(--ink-soft); background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 6px; width: 30px; height: 24px; cursor: pointer;
+  }
+  button.lang-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--btn-ink); }
+  button.lang-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+  h1 { margin: 0; font-size: clamp(1.15rem, 2.4vw, 1.4rem); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+
+  .eyebrow {
+    margin: 0 0 2px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    background: color-mix(in srgb, var(--accent) 22%, transparent);
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 18px; }
+
+  .field-label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); display: block; }
+
+  input[type="number"] {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.88rem;
+    width: 100%;
+    padding: 6px 8px;
+    border-radius: 7px;
+    border: 1px solid var(--line);
+    background: var(--panel-2);
+    color: var(--ink);
+  }
+  input[type="number"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+  input[type="range"] { -webkit-appearance: none; width: 100%; height: 20px; background: transparent; }
+  input[type="range"]::-webkit-slider-runnable-track { height: 4px; background: var(--line); border-radius: 999px; }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; margin-top: -6px; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--row-color, var(--accent)); border: 2px solid var(--panel); box-shadow: 0 0 0 1px var(--line); cursor: pointer;
+  }
+  input[type="range"]::-moz-range-track { height: 4px; background: var(--line); border-radius: 999px; }
+  input[type="range"]::-moz-range-thumb {
+    width: 12px; height: 12px; border-radius: 50%; background: var(--row-color, var(--accent)); border: 2px solid var(--panel); cursor: pointer;
+  }
+  input[type="range"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  .waves { display: flex; flex-direction: column; gap: 10px; }
+
+  .wave-row {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--row-color, var(--accent));
+    border-radius: 10px;
+    padding: 10px 12px 12px;
+    background: var(--panel-2);
+  }
+  .wave-row-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .wave-row-title { display: flex; align-items: center; gap: 7px; font-size: 0.82rem; font-weight: 600; }
+  .wave-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--row-color, var(--accent)); flex: 0 0 auto; }
+  .wave-remove {
+    font-family: inherit; font-size: 0.7rem; color: var(--ink-soft); background: transparent; border: 1px solid var(--line);
+    border-radius: 999px; width: 22px; height: 22px; cursor: pointer; line-height: 1;
+  }
+  .wave-remove:hover { color: var(--warn); border-color: var(--warn); }
+  .wave-remove:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+  .wave-row-tools { display: flex; align-items: center; gap: 4px; }
+  button.mix-btn {
+    font-family: inherit; font-size: 0.68rem; font-weight: 700; color: var(--ink-soft); background: transparent;
+    border: 1px solid var(--line); border-radius: 5px; width: 22px; height: 22px; cursor: pointer; line-height: 1;
+  }
+  button.mix-btn:hover { border-color: var(--ink-soft); }
+  button.mix-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  button.mix-btn.mute-btn[aria-pressed="true"] { background: var(--warn); border-color: var(--warn); color: #fff; }
+  button.mix-btn.solo-btn[aria-pressed="true"] { background: var(--row-color, var(--accent)); border-color: var(--row-color, var(--accent)); color: #fff; }
+  button.mix-btn.polarity-btn { font-size: 0.72rem; }
+  button.mix-btn.polarity-btn[aria-pressed="true"] { background: var(--row-color, var(--accent)); border-color: var(--row-color, var(--accent)); color: #fff; }
+  .wave-row.is-silenced { opacity: 0.5; }
+
+  .wave-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  @media (min-width: 560px) { .wave-grid { grid-template-columns: repeat(3, 1fr); } }
+
+  .param-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px; }
+  .param-head .field-label { margin: 0; }
+  .param-readout { font-size: 0.78rem; font-weight: 600; color: var(--ink); }
+
+  .freq-number {
+    width: 68px; text-align: right; font-size: 0.78rem; font-weight: 600; color: var(--ink);
+    padding: 1px 5px; border: 1px solid transparent; background: transparent; border-radius: 5px;
+  }
+  .freq-number:hover { border-color: var(--line); }
+  .freq-number:focus-visible { outline: none; border-color: var(--focus); background: var(--panel); }
+
+  .add-row { display: flex; align-items: center; gap: 10px; justify-content: space-between; margin-top: 2px; }
+
+  button.add-wave {
+    font-family: inherit; font-size: 0.8rem; font-weight: 600; color: var(--accent-ink);
+    background: color-mix(in srgb, var(--accent) 14%, transparent); border: 1px dashed var(--accent);
+    border-radius: 9px; padding: 8px 14px; cursor: pointer;
+  }
+  button.add-wave:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.add-wave:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+  .wave-count { font-size: 0.76rem; color: var(--ink-soft); }
+
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; }
+  button.chip {
+    font-family: inherit; font-size: 0.76rem; font-weight: 500; color: var(--ink); background: var(--panel-2);
+    border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer;
+  }
+  button.chip:hover { border-color: var(--accent); }
+  button.chip:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  button.chip.reset { color: var(--ink-soft); }
+
+  .play-card { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; }
+  .play-row { display: flex; align-items: center; gap: 12px; }
+
+  button.play {
+    font-family: inherit; font-size: 0.85rem; font-weight: 600; color: var(--btn-ink); background: var(--accent);
+    border: none; border-radius: 10px; padding: 10px 16px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto;
+  }
+  button.play:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  button.play[aria-pressed="true"] { background: var(--warn); }
+  .icon { width: 14px; height: 14px; flex: 0 0 auto; }
+
+  .vol-row { display: flex; align-items: center; gap: 10px; flex: 1 1 160px; min-width: 140px; }
+  .vol-row .field-label { flex: 0 0 auto; }
+
+  .scope-card { padding: 0; overflow: hidden; }
+  .scope-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+  .scope-head .field-label { margin: 0; }
+  .scope-readouts { display: flex; gap: 16px; font-size: 0.78rem; }
+  .scope-readouts b { color: var(--ink); font-weight: 600; }
+  .scope-readouts .k { color: var(--ink-soft); }
+
+  canvas#scope { display: block; width: 100%; height: 240px; background: var(--scope-bg); cursor: grab; touch-action: none; }
+  canvas#scope.dragging { cursor: grabbing; }
+
+  .spectrum-card { padding: 0; overflow: hidden; }
+  .spectrum-card > summary {
+    list-style: none; cursor: pointer; padding: 12px 14px; background: var(--panel-2);
+    display: flex; align-items: center; gap: 8px; user-select: none;
+  }
+  .spectrum-card > summary::-webkit-details-marker { display: none; }
+  .spectrum-card > summary::before {
+    content: '▸'; display: inline-block; font-size: 0.7em; color: var(--ink-soft);
+    transition: transform 0.15s ease; transform-origin: 45% 50%;
+  }
+  .spectrum-card[open] > summary { border-bottom: 1px solid var(--line); }
+  .spectrum-card[open] > summary::before { transform: rotate(90deg); }
+  .spectrum-body { padding: 0; }
+  canvas#spectrumCanvas { display: block; width: 100%; height: 200px; background: var(--scope-bg); }
+
+  .hint { font-size: 0.7rem; color: var(--ink-soft); margin-top: 10px; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 16px; padding: 8px 14px 12px; font-size: 0.72rem; color: var(--ink-soft); }
+  .legend .item { display: flex; align-items: center; gap: 6px; }
+  .legend .swatch { width: 16px; height: 0; border-top: 2px dashed var(--sw-color, var(--accent)); flex: 0 0 auto; }
+  .legend .swatch.solid { border-top-style: solid; border-top-width: 2.5px; }
+
+  footer { font-size: 0.72rem; color: var(--ink-soft); text-align: center; padding-top: 2px; }
+</style>
+
+<div class="sheet">
+  <div class="lang-toggle" role="group" aria-label="Language / Sprache">
+    <button class="lang-btn" data-lang="de" type="button" aria-pressed="true">DE</button>
+    <button class="lang-btn" data-lang="en" type="button" aria-pressed="false">EN</button>
+  </div>
+
+  <header>
+    <div>
+      <span class="eyebrow" data-i18n="eyebrow">Akustik · Überlagerung</span>
+      <h1 data-i18n="title">Überlagerte Schwingungen</h1>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="waves" id="waveList"></div>
+    <div class="add-row">
+      <button class="add-wave" id="addWaveBtn" type="button" data-i18n="addWave">+ Welle hinzufügen</button>
+      <span class="wave-count" id="waveCount">1 / 5</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <label class="field-label" style="margin-bottom:8px;" data-i18n="presetsLabel">Voreinstellungen (Grundfrequenz = Welle 1, außer Schwebung)</label>
+    <div class="presets">
+      <button class="chip" data-preset="harmonics" type="button" data-i18n="preset_harmonics">Obertonreihe</button>
+      <button class="chip" data-preset="square" type="button" data-i18n="preset_square">Rechteck</button>
+      <button class="chip" data-preset="sawtooth" type="button" data-i18n="preset_sawtooth">Sägezahn</button>
+      <button class="chip" data-preset="triangle" type="button" data-i18n="preset_triangle">Dreieck</button>
+      <button class="chip" data-preset="constructive" type="button" data-i18n="preset_constructive">Konstruktive Interferenz</button>
+      <button class="chip" data-preset="destructive" type="button" data-i18n="preset_destructive">Destruktive Interferenz</button>
+      <button class="chip" data-preset="beat" type="button" data-i18n="preset_beat">Schwebung</button>
+      <button class="chip reset" data-preset="reset" type="button" data-i18n="preset_reset">Zurücksetzen</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <label class="field-label" style="margin-bottom:8px;" data-i18n="fensterungLabel">Fensterung</label>
+    <div class="wave-grid">
+      <div>
+        <div class="param-head"><label class="field-label" data-i18n="startzeit">Startzeit</label><span><input type="number" class="freq-number mono" id="startTimeNumber" step="0.1" value="0"> ms</span></div>
+        <input type="range" id="startTimeSlider" min="-2000" max="2000" step="1" value="0" aria-label="Startzeit in Millisekunden">
+      </div>
+      <div>
+        <div class="param-head"><label class="field-label" data-i18n="zeitfenster">Zeitfenster</label><span><input type="number" class="freq-number mono" id="timeWindowNumber" min="0.1" max="5000" step="0.1" value="12.5"> ms</span></div>
+        <input type="range" id="timeWindowSlider" min="0" max="1000" step="1" aria-label="Zeitfenster in Millisekunden">
+      </div>
+      <div>
+        <div class="param-head"><label class="field-label" data-i18n="amplitudenBereich">Amplituden-Bereich</label><span><input type="number" class="freq-number mono" id="ampRangeNumber" min="0.05" max="50" step="0.05" value="2"> (&plusmn;)</span></div>
+        <input type="range" id="ampRangeSlider" min="0" max="1000" step="1" aria-label="Amplituden-Bereich">
+      </div>
+    </div>
+    <div class="hint" data-i18n="hint">Im Graph ziehen (Maus/Finger) verschiebt die Zeitachse · Shift + Mausrad verschiebt die Startzeit · Alt + Mausrad zoomt das Zeitfenster.</div>
+  </div>
+
+  <div class="card scope-card">
+    <div class="scope-head">
+      <span class="field-label" data-i18n="zeitbereichHeader">Darstellung im Zeitbereich · Einzelwellen (gestrichelt) &amp; Summenkurve</span>
+    </div>
+    <canvas id="scope" width="1400" height="480"></canvas>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <details class="card spectrum-card" id="spectrumDetails">
+    <summary class="field-label" data-i18n="frequenzbereichHeader">Darstellung im Frequenzbereich · Spektrum (berechnet)</summary>
+    <div class="spectrum-body">
+      <canvas id="spectrumCanvas" width="1400" height="320"></canvas>
+    </div>
+  </details>
+
+  <div class="card play-card">
+    <div class="play-row">
+      <button class="play" id="playBtn" type="button" aria-pressed="false">
+        <svg class="icon" id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        <span id="playLabel" data-i18n="play">Ton abspielen</span>
+      </button>
+    </div>
+    <div class="vol-row">
+      <label class="field-label" for="volSlider" data-i18n="lautstaerke">Lautstärke</label>
+      <input type="range" id="volSlider" min="0" max="100" step="1" value="15" aria-label="Lautstärke">
+    </div>
+  </div>
+
+  <footer data-i18n="footer">y(t) = Σ Aᵢ · sin(2π fᵢ t + φᵢ) · t = 0 entspricht dem Nulldurchgang von Welle 1 bei Phase 0°.</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // --- i18n ---
+  var I18N = {
+    de: {
+      eyebrow: 'Akustik · Überlagerung',
+      title: 'Überlagerte Schwingungen',
+      addWave: '+ Welle hinzufügen',
+      waveCount: function (n, max) { return n + ' / ' + max + ' Wellen'; },
+      presetsLabel: 'Voreinstellungen (Grundfrequenz = Welle 1, außer Schwebung)',
+      preset_harmonics: 'Obertonreihe',
+      preset_square: 'Rechteck',
+      preset_sawtooth: 'Sägezahn',
+      preset_triangle: 'Dreieck',
+      preset_constructive: 'Konstruktive Interferenz',
+      preset_destructive: 'Destruktive Interferenz',
+      preset_beat: 'Schwebung',
+      preset_reset: 'Zurücksetzen',
+      fensterungLabel: 'Fensterung',
+      startzeit: 'Startzeit',
+      zeitfenster: 'Zeitfenster',
+      amplitudenBereich: 'Amplituden-Bereich',
+      hint: 'Im Graph ziehen (Maus/Finger) verschiebt die Zeitachse · Shift + Mausrad verschiebt die Startzeit · Alt + Mausrad zoomt das Zeitfenster.',
+      zeitbereichHeader: 'Darstellung im Zeitbereich · Einzelwellen (gestrichelt) & Summenkurve',
+      frequenzbereichHeader: 'Darstellung im Frequenzbereich · Spektrum (berechnet)',
+      lautstaerke: 'Lautstärke',
+      play: 'Ton abspielen',
+      stop: 'Ton stoppen',
+      footer: 'y(t) = Σ Aᵢ · sin(2π fᵢ t + φᵢ) · t = 0 entspricht dem Nulldurchgang von Welle 1 bei Phase 0°.',
+      wave: 'Welle',
+      sum: 'Resultierende',
+      frequency: 'Frequenz',
+      amplitude: 'Amplitude',
+      phase: 'Phase',
+      soloTitle: 'Solo',
+      soloAria: 'Welle solo',
+      muteTitle: 'Stumm',
+      muteAria: 'Welle stumm',
+      polarityTitle: 'Polarität (180°)',
+      polarityAria: 'Polarität umkehren',
+      removeAria: 'Welle entfernen',
+      freqAxis: 'f (Hz)',
+      timeAxis: 't (ms)'
+    },
+    en: {
+      eyebrow: 'Acoustics · Superposition',
+      title: 'Superposed Waves',
+      addWave: '+ Add wave',
+      waveCount: function (n, max) { return n + ' / ' + max + ' waves'; },
+      presetsLabel: 'Presets (fundamental = wave 1, except beating)',
+      preset_harmonics: 'Harmonic series',
+      preset_square: 'Square',
+      preset_sawtooth: 'Sawtooth',
+      preset_triangle: 'Triangle',
+      preset_constructive: 'Constructive interference',
+      preset_destructive: 'Destructive interference',
+      preset_beat: 'Beating',
+      preset_reset: 'Reset',
+      fensterungLabel: 'View window',
+      startzeit: 'Start time',
+      zeitfenster: 'Time window',
+      amplitudenBereich: 'Amplitude range',
+      hint: 'Drag in the graph (mouse/touch) to pan the time axis · Shift + wheel moves the start time · Alt + wheel zooms the time window.',
+      zeitbereichHeader: 'Time-domain view · Individual waves (dashed) & sum curve',
+      frequenzbereichHeader: 'Frequency-domain view · Spectrum (calculated)',
+      lautstaerke: 'Volume',
+      play: 'Play sound',
+      stop: 'Stop sound',
+      footer: 'y(t) = Σ Aᵢ · sin(2π fᵢ t + φᵢ) · t = 0 is the zero crossing of wave 1 at phase 0°.',
+      wave: 'Wave',
+      sum: 'Sum',
+      frequency: 'Frequency',
+      amplitude: 'Amplitude',
+      phase: 'Phase',
+      soloTitle: 'Solo',
+      soloAria: 'Solo this wave',
+      muteTitle: 'Mute',
+      muteAria: 'Mute this wave',
+      polarityTitle: 'Polarity (180°)',
+      polarityAria: 'Invert polarity',
+      removeAria: 'Remove wave',
+      freqAxis: 'f (Hz)',
+      timeAxis: 't (ms)'
+    }
+  };
+  var LANG = 'de';
+  function t(key) { return I18N[LANG][key]; }
+
+  var FREQ_MIN = 20, FREQ_MAX = 5000;
+  var LOG_MIN = Math.log10(FREQ_MIN), LOG_MAX = Math.log10(FREQ_MAX);
+  var SLIDER_MAX = 1000;
+  var MAX_WAVES = 5;
+  var ROW_COLORS = ['--w1', '--w2', '--w3', '--w4', '--w5'];
+
+  var waves = [
+    { id: 1, freq: 220, amp: 1.0, phase: 0 }
+  ];
+  var nextId = 2;
+
+  var playing = false;
+  var audioCtx = null, oscillators = [], masterGain = null;
+
+  var waveList = document.getElementById('waveList');
+  var addWaveBtn = document.getElementById('addWaveBtn');
+  var waveCount = document.getElementById('waveCount');
+  var playBtn = document.getElementById('playBtn');
+  var playLabel = document.getElementById('playLabel');
+  var playIcon = document.getElementById('playIcon');
+  var volSlider = document.getElementById('volSlider');
+  var canvas = document.getElementById('scope');
+  var ctx = canvas.getContext('2d');
+  var spectrumDetails = document.getElementById('spectrumDetails');
+  var spectrumCanvas = document.getElementById('spectrumCanvas');
+  var sctx = spectrumCanvas.getContext('2d');
+
+  function freqToSlider(f) { return Math.round(((Math.log10(f) - LOG_MIN) / (LOG_MAX - LOG_MIN)) * SLIDER_MAX); }
+  function sliderToFreq(s) { return Math.pow(10, LOG_MIN + (s / SLIDER_MAX) * (LOG_MAX - LOG_MIN)); }
+  function fmtHz(f) { return Math.round(f).toLocaleString('de-DE'); }
+  function fmtMs(ms) {
+    var digits = ms < 10 ? 2 : ms < 100 ? 1 : 0;
+    return ms.toLocaleString('de-DE', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  }
+  function isPolarityFlipped(w) { return ((Math.round(w.phase) % 360) + 360) % 360 === 180; }
+
+  function renderWaves() {
+    waveList.innerHTML = '';
+    waves.forEach(function (w, idx) {
+      var colorVar = 'var(' + ROW_COLORS[idx % ROW_COLORS.length] + ')';
+      var row = document.createElement('div');
+      row.className = 'wave-row';
+      row.style.setProperty('--row-color', colorVar);
+
+      var removeBtn = waves.length > 1
+        ? '<button class="wave-remove" data-remove="' + w.id + '" type="button" aria-label="' + t('removeAria') + '">&times;</button>'
+        : '';
+
+      if (isSilenced(w)) row.classList.add('is-silenced');
+
+      row.innerHTML =
+        '<div class="wave-row-head">' +
+          '<div class="wave-row-title"><span class="wave-dot"></span>' + t('wave') + ' ' + (idx + 1) + '</div>' +
+          '<div class="wave-row-tools">' +
+            '<button class="mix-btn solo-btn" data-solo="' + w.id + '" type="button" aria-pressed="' + (!!w.solo) + '" aria-label="' + t('soloAria') + '" title="' + t('soloTitle') + '">S</button>' +
+            '<button class="mix-btn mute-btn" data-mute="' + w.id + '" type="button" aria-pressed="' + (!!w.muted) + '" aria-label="' + t('muteAria') + '" title="' + t('muteTitle') + '">M</button>' +
+            '<button class="mix-btn polarity-btn" data-polarity="' + w.id + '" type="button" aria-pressed="' + isPolarityFlipped(w) + '" aria-label="' + t('polarityAria') + '" title="' + t('polarityTitle') + '">&Oslash;</button>' +
+            removeBtn +
+          '</div>' +
+        '</div>' +
+        '<div class="wave-grid">' +
+          '<div>' +
+            '<div class="param-head"><label class="field-label">' + t('frequency') + '</label><span><input type="number" class="freq-number mono" data-role="freqNumber" data-id="' + w.id + '" min="' + FREQ_MIN + '" max="' + FREQ_MAX + '" step="1" value="' + Math.round(w.freq) + '"> Hz</span></div>' +
+            '<input type="range" data-role="freqSlider" data-id="' + w.id + '" min="0" max="' + SLIDER_MAX + '" step="1" value="' + freqToSlider(w.freq) + '">' +
+          '</div>' +
+          '<div>' +
+            '<div class="param-head"><label class="field-label">' + t('amplitude') + '</label><span><input type="number" class="freq-number mono" data-role="ampNumber" data-id="' + w.id + '" min="0" max="500" step="1" value="' + Math.round(w.amp * 100) + '"> %</span></div>' +
+            '<input type="range" data-role="ampSlider" data-id="' + w.id + '" min="0" max="100" step="1" value="' + Math.round(w.amp * 100) + '">' +
+          '</div>' +
+          '<div>' +
+            '<div class="param-head"><label class="field-label">' + t('phase') + '</label>' +
+              '<span><input type="number" class="freq-number mono" data-role="phaseNumber" data-id="' + w.id + '" min="-3600" max="3600" step="1" value="' + Math.round(w.phase) + '"> &deg;</span>' +
+            '</div>' +
+            '<input type="range" data-role="phaseSlider" data-id="' + w.id + '" min="0" max="360" step="1" value="' + ((Math.round(w.phase) % 360 + 360) % 360) + '">' +
+          '</div>' +
+        '</div>';
+
+      waveList.appendChild(row);
+    });
+
+    waveList.querySelectorAll('[data-role="freqSlider"]').forEach(function (el) {
+      el.addEventListener('input', function () {
+        var w = findWave(Number(el.getAttribute('data-id')));
+        if (w) { w.freq = sliderToFreq(Number(el.value)); updateReadouts(); syncAudioFreqs(); redraw(); }
+      });
+    });
+    waveList.querySelectorAll('[data-role="freqNumber"]').forEach(function (el) {
+      el.addEventListener('input', function () {
+        var v = Number(el.value);
+        if (isNaN(v)) return;
+        var w = findWave(Number(el.getAttribute('data-id')));
+        if (w) { w.freq = Math.min(FREQ_MAX, Math.max(FREQ_MIN, v)); updateReadouts(); syncAudioFreqs(); redraw(); }
+      });
+      el.addEventListener('blur', function () { updateReadouts(); });
+    });
+    waveList.querySelectorAll('[data-role="ampSlider"]').forEach(function (el) {
+      el.addEventListener('input', function () {
+        var w = findWave(Number(el.getAttribute('data-id')));
+        if (w) { w.amp = Number(el.value) / 100; updateReadouts(); syncAudioGains(); redraw(); }
+      });
+    });
+    waveList.querySelectorAll('[data-role="ampNumber"]').forEach(function (el) {
+      el.addEventListener('input', function () {
+        var v = Number(el.value);
+        if (isNaN(v)) return;
+        var w = findWave(Number(el.getAttribute('data-id')));
+        if (w) { w.amp = Math.max(0, v) / 100; updateReadouts(); syncAudioGains(); redraw(); }
+      });
+      el.addEventListener('blur', function () { updateReadouts(); });
+    });
+    waveList.querySelectorAll('[data-role="phaseSlider"]').forEach(function (el) {
+      el.addEventListener('input', function () {
+        var w = findWave(Number(el.getAttribute('data-id')));
+        if (w) { w.phase = Number(el.value); updateReadouts(); redraw(); }
+      });
+    });
+    waveList.querySelectorAll('[data-role="phaseNumber"]').forEach(function (el) {
+      el.addEventListener('input', function () {
+        var v = Number(el.value);
+        if (isNaN(v)) return;
+        var w = findWave(Number(el.getAttribute('data-id')));
+        if (w) { w.phase = v; updateReadouts(); redraw(); }
+      });
+      el.addEventListener('blur', function () { updateReadouts(); });
+    });
+    waveList.querySelectorAll('[data-remove]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        removeWave(Number(el.getAttribute('data-remove')));
+      });
+    });
+    waveList.querySelectorAll('[data-solo]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        toggleSolo(Number(el.getAttribute('data-solo')));
+      });
+    });
+    waveList.querySelectorAll('[data-mute]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        toggleMute(Number(el.getAttribute('data-mute')));
+      });
+    });
+    waveList.querySelectorAll('[data-polarity]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        togglePolarity(Number(el.getAttribute('data-polarity')));
+      });
+    });
+
+    addWaveBtn.disabled = waves.length >= MAX_WAVES;
+    waveCount.textContent = t('waveCount')(waves.length, MAX_WAVES);
+    renderLegend();
+  }
+
+  // solo is exclusive: soloing a wave clears solo on every other wave;
+  // clicking the currently-soloed wave's button again turns solo off entirely
+  function toggleSolo(id) {
+    var target = findWave(id);
+    if (!target) return;
+    var turningOn = !target.solo;
+    waves.forEach(function (w) { w.solo = false; });
+    if (turningOn) target.solo = true;
+    renderWaves();
+    syncAudioGains();
+    redraw();
+  }
+  function toggleMute(id) {
+    var w = findWave(id);
+    if (!w) return;
+    w.muted = !w.muted;
+    renderWaves();
+    syncAudioGains();
+    redraw();
+  }
+  // Polarity is a simple two-state switch (like the Ø button on a mixer
+  // channel): it forces the phase to exactly 180° when engaged, and back to
+  // 0° when disengaged — not a relative +180° offset on top of a custom phase.
+  function togglePolarity(id) {
+    var w = findWave(id);
+    if (!w) return;
+    w.phase = isPolarityFlipped(w) ? 0 : 180;
+    renderWaves();
+    rebuildAudioGraph();
+    redraw();
+  }
+  // whether a wave contributes to the sum / audio: if any wave is soloed,
+  // only soloed wave(s) count (exclusive, so effectively just one); otherwise
+  // every non-muted wave counts
+  function isAudible(w) {
+    var anySolo = waves.some(function (x) { return x.solo; });
+    return anySolo ? !!w.solo : !w.muted;
+  }
+  function isSilenced(w) { return !isAudible(w); }
+
+  function setIfNotFocused(el, value) {
+    if (el && document.activeElement !== el) el.value = value;
+  }
+
+  function updateReadouts() {
+    waveList.querySelectorAll('.wave-row').forEach(function (row, idx) {
+      var w = waves[idx];
+      if (!w) return;
+      setIfNotFocused(row.querySelector('[data-role="freqNumber"]'), Math.round(w.freq));
+      setIfNotFocused(row.querySelector('[data-role="freqSlider"]'), freqToSlider(w.freq));
+      setIfNotFocused(row.querySelector('[data-role="ampNumber"]'), Math.round(w.amp * 100));
+      setIfNotFocused(row.querySelector('[data-role="ampSlider"]'), Math.min(100, Math.round(w.amp * 100)));
+      setIfNotFocused(row.querySelector('[data-role="phaseNumber"]'), Math.round(w.phase));
+      setIfNotFocused(row.querySelector('[data-role="phaseSlider"]'), ((Math.round(w.phase) % 360) + 360) % 360);
+      var polBtn = row.querySelector('[data-polarity]');
+      if (polBtn) polBtn.setAttribute('aria-pressed', isPolarityFlipped(w));
+    });
+  }
+
+  function findWave(id) { return waves.filter(function (w) { return w.id === id; })[0]; }
+
+  function addWave() {
+    if (waves.length >= MAX_WAVES) return;
+    var base = waves[0] ? waves[0].freq : 220;
+    waves.push({ id: nextId++, freq: base, amp: 0.6, phase: 0 });
+    renderWaves();
+    rebuildAudioGraph();
+    redraw();
+  }
+  function removeWave(id) {
+    if (waves.length <= 1) return;
+    waves = waves.filter(function (w) { return w.id !== id; });
+    renderWaves();
+    rebuildAudioGraph();
+    redraw();
+  }
+  addWaveBtn.addEventListener('click', addWave);
+
+  // --- Presets ---
+  function applyPreset(name) {
+    var f0 = waves[0] ? waves[0].freq : 220;
+    var terms = [];
+    if (name === 'reset') {
+      waves = [{ id: nextId++, freq: 220, amp: 1, phase: 0 }];
+      renderWaves(); rebuildAudioGraph();
+      setStartMs(0); setWindowMs(defaultWindowMs()); setAmpRange(DEFAULT_AMP_RANGE);
+      redraw();
+      return;
+    }
+    if (name === 'constructive') {
+      waves = [
+        { id: nextId++, freq: f0, amp: 1, phase: 0 },
+        { id: nextId++, freq: f0, amp: 1, phase: 0 }
+      ];
+      renderWaves(); rebuildAudioGraph();
+      setStartMs(0); setWindowMs(defaultWindowMs()); redraw();
+      return;
+    }
+    if (name === 'destructive') {
+      waves = [
+        { id: nextId++, freq: f0, amp: 1, phase: 0 },
+        { id: nextId++, freq: f0, amp: 1, phase: 180 }
+      ];
+      renderWaves(); rebuildAudioGraph();
+      setStartMs(0); setWindowMs(defaultWindowMs()); redraw();
+      return;
+    }
+    if (name === 'beat') {
+      var fb = 440, fbDiff = 5;
+      waves = [
+        { id: nextId++, freq: fb, amp: 1, phase: 0 },
+        { id: nextId++, freq: fb + fbDiff, amp: 1, phase: 0 }
+      ];
+      renderWaves(); rebuildAudioGraph();
+      // show 3 beat cycles so the amplitude modulation (envelope) is clearly visible
+      setStartMs(0); setWindowMs(3 * (1000 / fbDiff));
+      redraw();
+      return;
+    }
+
+    if (name === 'harmonics') {
+      [1, 2, 3, 4, 5].forEach(function (n) { terms.push({ n: n, amp: 1 / n, phase: 0 }); });
+    } else if (name === 'square') {
+      [1, 3, 5, 7, 9].forEach(function (n) { terms.push({ n: n, amp: 1 / n, phase: 0 }); });
+    } else if (name === 'sawtooth') {
+      [1, 2, 3, 4, 5].forEach(function (n) { terms.push({ n: n, amp: 1 / n, phase: (n % 2 === 0) ? 180 : 0 }); });
+    } else if (name === 'triangle') {
+      var k = 0;
+      [1, 3, 5, 7, 9].forEach(function (n) {
+        terms.push({ n: n, amp: 1 / (n * n), phase: (k % 2 === 0) ? 0 : 180 });
+        k++;
+      });
+    } else { return; }
+
+    var maxAmp = terms[0].amp;
+    var built = [];
+    terms.forEach(function (t) {
+      var f = f0 * t.n;
+      if (f > FREQ_MAX) return;
+      built.push({ id: nextId++, freq: f, amp: t.amp / maxAmp, phase: t.phase });
+    });
+    waves = built.length ? built : [{ id: nextId++, freq: f0, amp: 1, phase: 0 }];
+    renderWaves();
+    rebuildAudioGraph();
+    redraw();
+  }
+  document.querySelectorAll('[data-preset]').forEach(function (btn) {
+    btn.addEventListener('click', function () { applyPreset(btn.getAttribute('data-preset')); });
+  });
+
+  // --- Audio ---
+  function ensureAudio() {
+    if (!audioCtx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AC();
+      masterGain = audioCtx.createGain();
+      masterGain.connect(audioCtx.destination);
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function currentMasterLevel() {
+    var sum = waves.reduce(function (s, w) { return s + (isAudible(w) ? w.amp : 0); }, 0);
+    var norm = 0.85 / Math.max(1, sum);
+    return (Number(volSlider.value) / 100) * norm;
+  }
+
+  function rebuildAudioGraph() {
+    if (!playing) return;
+    stopOscillators();
+    startOscillators();
+  }
+
+  function startOscillators() {
+    ensureAudio();
+    // each wave's relative phase is realized as a start-time offset: two
+    // oscillators at the same frequency started half a period apart stay
+    // out of phase for as long as they keep running, which makes phase
+    // (and therefore the polarity switch / interference presets) audible,
+    // not just visible in the graph.
+    var t0 = audioCtx.currentTime + 0.02;
+    oscillators = waves.map(function (w) {
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(w.freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(isAudible(w) ? w.amp : 0, audioCtx.currentTime);
+      osc.connect(gain).connect(masterGain);
+      var periodSec = 1 / w.freq;
+      var phaseFrac = (((w.phase % 360) + 360) % 360) / 360;
+      osc.start(t0 + phaseFrac * periodSec);
+      return { id: w.id, osc: osc, gain: gain };
+    });
+    masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
+    masterGain.gain.linearRampToValueAtTime(currentMasterLevel(), t0 + 0.03);
+  }
+
+  function stopOscillators() {
+    if (!audioCtx) return;
+    var now = audioCtx.currentTime;
+    oscillators.forEach(function (o) { o.osc.stop(now + 0.03); });
+    oscillators = [];
+  }
+
+  function syncAudioFreqs() {
+    if (!playing || !audioCtx) return;
+    oscillators.forEach(function (o) {
+      var w = findWave(o.id);
+      if (w) o.osc.frequency.setValueAtTime(w.freq, audioCtx.currentTime);
+    });
+  }
+  function syncAudioGains() {
+    if (!playing || !audioCtx) return;
+    oscillators.forEach(function (o) {
+      var w = findWave(o.id);
+      if (w) o.gain.gain.setValueAtTime(isAudible(w) ? w.amp : 0, audioCtx.currentTime);
+    });
+    masterGain.gain.setValueAtTime(currentMasterLevel(), audioCtx.currentTime);
+  }
+
+  playBtn.addEventListener('click', function () {
+    if (playing) {
+      stopOscillators();
+      if (masterGain && audioCtx) {
+        var now = audioCtx.currentTime;
+        masterGain.gain.cancelScheduledValues(now);
+        masterGain.gain.setValueAtTime(masterGain.gain.value, now);
+        masterGain.gain.linearRampToValueAtTime(0, now + 0.03);
+      }
+      playing = false;
+      playBtn.setAttribute('aria-pressed', 'false');
+      playLabel.textContent = t('play');
+      playIcon.innerHTML = '<path d="M8 5v14l11-7z"></path>';
+    } else {
+      startOscillators();
+      playing = true;
+      playBtn.setAttribute('aria-pressed', 'true');
+      playLabel.textContent = t('stop');
+      playIcon.innerHTML = '<rect x="6" y="5" width="4" height="14"></rect><rect x="14" y="5" width="4" height="14"></rect>';
+    }
+  });
+
+  volSlider.addEventListener('input', function () {
+    if (playing && masterGain && audioCtx) masterGain.gain.setValueAtTime(currentMasterLevel(), audioCtx.currentTime);
+  });
+
+  // --- View controls (start time, time window, amplitude range) ---
+  // All three are absolute, manually-set values. None of them are recomputed
+  // automatically when a wave's frequency/amplitude changes — they only
+  // change when the user (or a preset) explicitly sets them.
+  var WIN_MS_MIN = 0.1, WIN_MS_MAX = 5000;
+  var WIN_LOG_MIN = Math.log10(WIN_MS_MIN), WIN_LOG_MAX = Math.log10(WIN_MS_MAX);
+  var WIN_SLIDER_MAX = 1000;
+  var AMP_MIN = 0.05, AMP_MAX = 50;
+  var AMP_LOG_MIN = Math.log10(AMP_MIN), AMP_LOG_MAX = Math.log10(AMP_MAX);
+  var AMP_SLIDER_MAX = 1000;
+  var START_MS_MIN = -2000, START_MS_MAX = 2000;
+
+  function defaultWindowMs() { return 5.5 * (1000 / 440); } // = 12.5 ms
+  var DEFAULT_AMP_RANGE = 2;
+
+  var startTimeSlider = document.getElementById('startTimeSlider');
+  var startTimeNumber = document.getElementById('startTimeNumber');
+  var timeWindowSlider = document.getElementById('timeWindowSlider');
+  var timeWindowNumber = document.getElementById('timeWindowNumber');
+  var ampRangeSlider = document.getElementById('ampRangeSlider');
+  var ampRangeNumber = document.getElementById('ampRangeNumber');
+
+  var startMs = 0;
+  var windowMs = defaultWindowMs();
+  var ampRange = DEFAULT_AMP_RANGE;
+
+  function msToWinSlider(ms) { return Math.round(((Math.log10(ms) - WIN_LOG_MIN) / (WIN_LOG_MAX - WIN_LOG_MIN)) * WIN_SLIDER_MAX); }
+  function winSliderToMs(s) { return Math.pow(10, WIN_LOG_MIN + (s / WIN_SLIDER_MAX) * (WIN_LOG_MAX - WIN_LOG_MIN)); }
+  function ampToSlider(a) { return Math.round(((Math.log10(a) - AMP_LOG_MIN) / (AMP_LOG_MAX - AMP_LOG_MIN)) * AMP_SLIDER_MAX); }
+  function sliderToAmp(s) { return Math.pow(10, AMP_LOG_MIN + (s / AMP_SLIDER_MAX) * (AMP_LOG_MAX - AMP_LOG_MIN)); }
+
+  function setStartMs(ms) {
+    startMs = Math.min(START_MS_MAX, Math.max(START_MS_MIN, ms));
+    setIfNotFocused(startTimeSlider, Math.round(startMs));
+    setIfNotFocused(startTimeNumber, roundTo(startMs, 2));
+  }
+  function setWindowMs(ms) {
+    windowMs = Math.min(WIN_MS_MAX, Math.max(WIN_MS_MIN, ms));
+    setIfNotFocused(timeWindowSlider, msToWinSlider(windowMs));
+    setIfNotFocused(timeWindowNumber, roundTo(windowMs, 3));
+  }
+  function setAmpRange(a) {
+    ampRange = Math.min(AMP_MAX, Math.max(AMP_MIN, a));
+    setIfNotFocused(ampRangeSlider, ampToSlider(ampRange));
+    setIfNotFocused(ampRangeNumber, roundTo(ampRange, 2));
+  }
+  function roundTo(v, digits) { var f = Math.pow(10, digits); return Math.round(v * f) / f; }
+
+  startTimeSlider.addEventListener('input', function () {
+    startMs = Number(startTimeSlider.value);
+    setIfNotFocused(startTimeNumber, roundTo(startMs, 2));
+    redraw();
+  });
+  startTimeNumber.addEventListener('input', function () {
+    var v = Number(startTimeNumber.value);
+    if (isNaN(v)) return;
+    startMs = v;
+    setIfNotFocused(startTimeSlider, Math.round(Math.min(START_MS_MAX, Math.max(START_MS_MIN, startMs))));
+    redraw();
+  });
+
+  timeWindowSlider.addEventListener('input', function () {
+    windowMs = winSliderToMs(Number(timeWindowSlider.value));
+    setIfNotFocused(timeWindowNumber, roundTo(windowMs, 3));
+    redraw();
+  });
+  timeWindowNumber.addEventListener('input', function () {
+    var v = Number(timeWindowNumber.value);
+    if (isNaN(v) || v <= 0) return;
+    windowMs = v;
+    setIfNotFocused(timeWindowSlider, msToWinSlider(Math.min(WIN_MS_MAX, Math.max(WIN_MS_MIN, windowMs))));
+    redraw();
+  });
+
+  ampRangeSlider.addEventListener('input', function () {
+    ampRange = sliderToAmp(Number(ampRangeSlider.value));
+    setIfNotFocused(ampRangeNumber, roundTo(ampRange, 2));
+    redraw();
+  });
+  ampRangeNumber.addEventListener('input', function () {
+    var v = Number(ampRangeNumber.value);
+    if (isNaN(v) || v <= 0) return;
+    ampRange = v;
+    setIfNotFocused(ampRangeSlider, ampToSlider(Math.min(AMP_MAX, Math.max(AMP_MIN, ampRange))));
+    redraw();
+  });
+
+  timeWindowSlider.value = msToWinSlider(windowMs);
+  ampRangeSlider.value = ampToSlider(ampRange);
+  startTimeSlider.value = 0;
+
+  // --- Drag / touch panning on the time axis ---
+  (function () {
+    var dragging = false, dragStartX = 0, dragStartMs = 0, pxPerMs = 1;
+    canvas.addEventListener('pointerdown', function (e) {
+      dragging = true;
+      dragStartX = e.clientX;
+      dragStartMs = startMs;
+      canvas.classList.add('dragging');
+      canvas.setPointerCapture(e.pointerId);
+      var rect = canvas.getBoundingClientRect();
+      pxPerMs = rect.width / windowMs;
+    });
+    canvas.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      var deltaPx = e.clientX - dragStartX;
+      setStartMs(dragStartMs - deltaPx / pxPerMs);
+      redraw();
+    });
+    function endDrag(e) {
+      if (!dragging) return;
+      dragging = false;
+      canvas.classList.remove('dragging');
+    }
+    canvas.addEventListener('pointerup', endDrag);
+    canvas.addEventListener('pointercancel', endDrag);
+  })();
+
+  // --- Wheel gestures: Shift+Rad = Startzeit verschieben, Alt+Rad = Zeitfenster zoomen ---
+  canvas.addEventListener('wheel', function (e) {
+    if (e.shiftKey && !e.altKey && !e.ctrlKey) {
+      e.preventDefault();
+      var delta = Math.max(-100, Math.min(100, e.deltaY));
+      setStartMs(startMs + (delta / 100) * 0.15 * windowMs);
+      redraw();
+    } else if (e.altKey && !e.shiftKey && !e.ctrlKey) {
+      e.preventDefault();
+      var factor = Math.exp(e.deltaY * 0.0015);
+      setWindowMs(windowMs * factor);
+      redraw();
+    }
+    // no modifier (or any other combination): do nothing, let the page scroll normally
+  }, { passive: false });
+
+  // --- Canvas: static XY coordinate system (time domain) ---
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  function resizeCanvas() {
+    var rect = canvas.getBoundingClientRect();
+    var h = rect.height || 240;
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(h * dpr);
+    redraw();
+  }
+  window.addEventListener('resize', resizeCanvas);
+
+  function redraw() {
+    drawGraph();
+    drawSpectrum();
+  }
+
+  function sampleAt(t) {
+    var y = 0;
+    for (var i = 0; i < waves.length; i++) {
+      var w = waves[i];
+      if (!isAudible(w)) continue;
+      y += w.amp * Math.sin(2 * Math.PI * w.freq * t + (w.phase * Math.PI / 180));
+    }
+    return y;
+  }
+  function sampleWaveAt(w, t) {
+    return w.amp * Math.sin(2 * Math.PI * w.freq * t + (w.phase * Math.PI / 180));
+  }
+
+  function renderLegend() {
+    var legend = document.getElementById('legend');
+    var parts = waves.map(function (w, idx) {
+      var colorVar = 'var(' + ROW_COLORS[idx % ROW_COLORS.length] + ')';
+      return '<span class="item"><span class="swatch" style="--sw-color:' + colorVar + '"></span>' + t('wave') + ' ' + (idx + 1) + '</span>';
+    });
+    if (waves.length > 1) {
+      parts.push('<span class="item"><span class="swatch solid" style="--sw-color:var(--result-trace)"></span>' + t('sum') + '</span>');
+    }
+    legend.innerHTML = parts.join('');
+  }
+
+  function getVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+  function niceStep(rough) {
+    var pow10 = Math.pow(10, Math.floor(Math.log10(rough)));
+    var f = rough / pow10;
+    var nf = f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10;
+    return nf * pow10;
+  }
+
+  function drawGraph() {
+    var w = canvas.width, h = canvas.height;
+    if (w === 0 || h === 0) return;
+
+    var gridColor = getVar('--scope-grid');
+    var midColor = getVar('--scope-grid-mid');
+    var textColor = getVar('--scope-text');
+    var resultColor = getVar('--result-trace');
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = getVar('--scope-bg');
+    ctx.fillRect(0, 0, w, h);
+
+    var leftM = 42 * dpr, bottomM = 26 * dpr, topM = 10 * dpr, rightM = 10 * dpr;
+    var plotW = w - leftM - rightM;
+    var plotH = h - topM - bottomM;
+    var originX = leftM;
+    var originY = topM + plotH / 2;
+
+    var windowSec = windowMs / 1000;
+    var startSec = startMs / 1000;
+
+    // sample the resultant AND each individual wave over [startMs, startMs+windowMs];
+    // the window's position and width are both set purely by the user (sliders,
+    // number fields, or dragging the graph) — never recomputed from wave settings
+    var steps = Math.max(2, Math.round(plotW));
+    var resultSamples = new Array(steps + 1);
+    var waveSamples = waves.map(function () { return new Array(steps + 1); });
+    for (var i = 0; i <= steps; i++) {
+      var tSec = startSec + (i / steps) * windowSec;
+      var s = sampleAt(tSec);
+      resultSamples[i] = s;
+      for (var wi = 0; wi < waves.length; wi++) {
+        waveSamples[wi][i] = sampleWaveAt(waves[wi], tSec);
+      }
+    }
+    // amplitude range is an absolute, user-set value — it does NOT auto-fit
+    // to the current wave amplitudes, so curves can clip at the top/bottom
+    // of the visible area if the range is set too small
+    var visibleRange = ampRange;
+    var pxPerY = (plotH / 2) / visibleRange;
+
+    // horizontal gridlines (amplitude)
+    ctx.font = (10.5 * dpr) + 'px "IBM Plex Mono", monospace';
+    ctx.fillStyle = textColor;
+    ctx.strokeStyle = gridColor;
+    ctx.lineWidth = 1;
+    var yStep = niceStep(visibleRange / 2);
+    for (var yv = -Math.ceil(visibleRange / yStep) * yStep; yv <= visibleRange + 1e-9; yv += yStep) {
+      var yy = originY - yv * pxPerY;
+      if (yy < topM - 1 || yy > topM + plotH + 1) continue;
+      ctx.beginPath(); ctx.moveTo(leftM, Math.round(yy) + 0.5); ctx.lineTo(leftM + plotW, Math.round(yy) + 0.5); ctx.stroke();
+      var label = yv.toLocaleString('de-DE', { minimumFractionDigits: Math.abs(yv) < 1 ? 2 : 1, maximumFractionDigits: 2 });
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, leftM - 6 * dpr, yy);
+    }
+
+    // vertical gridlines (time, ms) — aligned to absolute time so they stay
+    // fixed in place while the window is panned, like a ruler sliding underneath
+    var endMs = startMs + windowMs;
+    var xStep = niceStep(windowMs / 6);
+    var xv0 = Math.ceil(startMs / xStep) * xStep;
+    ctx.strokeStyle = gridColor;
+    for (var xv = xv0; xv <= endMs + 1e-9; xv += xStep) {
+      var xx = originX + ((xv - startMs) / windowMs) * plotW;
+      ctx.beginPath(); ctx.moveTo(Math.round(xx) + 0.5, topM); ctx.lineTo(Math.round(xx) + 0.5, topM + plotH); ctx.stroke();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(xv.toLocaleString('de-DE', { maximumFractionDigits: 2 }), xx, topM + plotH + 6 * dpr);
+    }
+
+    // axes through the origin (y = 0 always visible; t = 0 only drawn when
+    // it actually falls inside the current, freely pannable window)
+    ctx.strokeStyle = midColor;
+    ctx.lineWidth = Math.max(1.2, 1.2 * dpr);
+    ctx.beginPath();
+    ctx.moveTo(leftM, Math.round(originY) + 0.5); ctx.lineTo(leftM + plotW, Math.round(originY) + 0.5);
+    if (startMs <= 0 && endMs >= 0) {
+      var zeroX = originX + ((0 - startMs) / windowMs) * plotW;
+      ctx.moveTo(Math.round(zeroX) + 0.5, topM); ctx.lineTo(Math.round(zeroX) + 0.5, topM + plotH);
+    }
+    ctx.stroke();
+
+    // individual waves: dashed, in their own color (skipped when only one
+    // wave is active, since it would exactly overlap the resultant)
+    if (waves.length > 1) {
+      for (var wi2 = 0; wi2 < waves.length; wi2++) {
+        var waveColor = getVar(ROW_COLORS[wi2 % ROW_COLORS.length]);
+        ctx.beginPath();
+        ctx.strokeStyle = waveColor;
+        ctx.globalAlpha = isAudible(waves[wi2]) ? 1 : 0.3;
+        ctx.lineWidth = Math.max(1.4, 1.4 * dpr);
+        ctx.lineJoin = 'round';
+        ctx.setLineDash([5 * dpr, 4 * dpr]);
+        for (var j2 = 0; j2 <= steps; j2++) {
+          var xx3 = originX + (j2 / steps) * plotW;
+          var yy3 = originY - waveSamples[wi2][j2] * pxPerY;
+          if (j2 === 0) ctx.moveTo(xx3, yy3); else ctx.lineTo(xx3, yy3);
+        }
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      ctx.setLineDash([]);
+    }
+
+    // resultant: solid, neutral color, drawn on top
+    ctx.beginPath();
+    ctx.strokeStyle = resultColor;
+    ctx.lineWidth = Math.max(2.4, 2.4 * dpr);
+    ctx.lineJoin = 'round';
+    for (var j = 0; j <= steps; j++) {
+      var xx2 = originX + (j / steps) * plotW;
+      var yy2 = originY - resultSamples[j] * pxPerY;
+      if (j === 0) ctx.moveTo(xx2, yy2); else ctx.lineTo(xx2, yy2);
+    }
+    ctx.stroke();
+
+    // axis unit caption
+    ctx.fillStyle = textColor;
+    ctx.font = '600 ' + (11 * dpr) + 'px "IBM Plex Sans", sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(t('timeAxis'), leftM + plotW, topM + plotH + 20 * dpr);
+  }
+
+  // --- Frequency-domain spectrum: computed directly from each wave's own
+  // frequency/amplitude (they ARE the Fourier components already, so no FFT
+  // is needed) — a static line/stem plot, redrawn whenever a parameter
+  // changes, not a continuously animated view.
+  var FREQ_TICKS = [20, 50, 100, 200, 500, 1000, 2000, 5000];
+  // DAW-style tick labels: plain numbers below 1 kHz, "k" notation from 1 kHz up
+  // (matches the frequency-axis convention used by common spectrum analyzers)
+  function fmtFreqTick(f) {
+    if (f >= 1000) {
+      var k = f / 1000;
+      return (k % 1 === 0 ? k : k.toFixed(1)) + 'k';
+    }
+    return String(f);
+  }
+
+  function drawSpectrum() {
+    if (!spectrumDetails.open) return;
+    var rect = spectrumCanvas.getBoundingClientRect();
+    if (rect.width === 0) return;
+    spectrumCanvas.width = Math.round(rect.width * dpr);
+    spectrumCanvas.height = Math.round((rect.height || 200) * dpr);
+    var w = spectrumCanvas.width, h = spectrumCanvas.height;
+
+    var gridColor = getVar('--scope-grid');
+    var midColor = getVar('--scope-grid-mid');
+    var textColor = getVar('--scope-text');
+
+    sctx.clearRect(0, 0, w, h);
+    sctx.fillStyle = getVar('--scope-bg');
+    sctx.fillRect(0, 0, w, h);
+
+    var leftM = 42 * dpr, bottomM = 28 * dpr, topM = 22 * dpr, rightM = 10 * dpr;
+    var plotW = w - leftM - rightM;
+    var plotH = h - topM - bottomM;
+    var baseY = topM + plotH;
+
+    var maxAmp = waves.reduce(function (m, w) { return Math.max(m, w.amp); }, 0.0001);
+    var step = niceStep(Math.max(maxAmp, 0.01) / 4);
+    var yMax = Math.ceil((maxAmp * 1.15) / step) * step;
+
+    // horizontal gridlines (amplitude, shown as %)
+    sctx.font = (11 * dpr) + 'px "IBM Plex Mono", monospace';
+    sctx.strokeStyle = gridColor;
+    sctx.fillStyle = textColor;
+    sctx.lineWidth = 1;
+    for (var yv = 0; yv <= yMax + 1e-9; yv += step) {
+      var yy = baseY - (yv / yMax) * plotH;
+      sctx.beginPath(); sctx.moveTo(leftM, Math.round(yy) + 0.5); sctx.lineTo(leftM + plotW, Math.round(yy) + 0.5); sctx.stroke();
+      sctx.textAlign = 'right';
+      sctx.textBaseline = 'middle';
+      sctx.fillText(Math.round(yv * 100) + '%', leftM - 6 * dpr, yy);
+    }
+
+    // vertical gridlines (frequency, log scale, standard decade/half-decade ticks,
+    // DAW-style "k" labels — same layout convention as a typical spectrum analyzer)
+    sctx.font = (11 * dpr) + 'px "IBM Plex Mono", monospace';
+    FREQ_TICKS.forEach(function (f) {
+      var xr = (Math.log10(f) - LOG_MIN) / (LOG_MAX - LOG_MIN);
+      var xx = leftM + xr * plotW;
+      sctx.strokeStyle = gridColor;
+      sctx.beginPath(); sctx.moveTo(Math.round(xx) + 0.5, topM); sctx.lineTo(Math.round(xx) + 0.5, baseY); sctx.stroke();
+      sctx.fillStyle = textColor;
+      sctx.textAlign = 'center';
+      sctx.textBaseline = 'top';
+      sctx.fillText(fmtFreqTick(f), xx, baseY + 7 * dpr);
+    });
+
+    // baseline
+    sctx.strokeStyle = midColor;
+    sctx.lineWidth = Math.max(1.2, 1.2 * dpr);
+    sctx.beginPath(); sctx.moveTo(leftM, Math.round(baseY) + 0.5); sctx.lineTo(leftM + plotW, Math.round(baseY) + 0.5); sctx.stroke();
+
+    // one stem per wave, at its exact frequency, height = its amplitude
+    waves.forEach(function (wobj, idx) {
+      var color = getVar(ROW_COLORS[idx % ROW_COLORS.length]);
+      var xr = (Math.log10(wobj.freq) - LOG_MIN) / (LOG_MAX - LOG_MIN);
+      var xx = leftM + xr * plotW;
+      var yy = baseY - (wobj.amp / yMax) * plotH;
+      var alpha = isAudible(wobj) ? 1 : 0.3;
+
+      sctx.globalAlpha = alpha;
+      sctx.strokeStyle = color;
+      sctx.lineWidth = Math.max(2.4, 2.4 * dpr);
+      sctx.beginPath(); sctx.moveTo(xx, baseY); sctx.lineTo(xx, yy); sctx.stroke();
+
+      sctx.fillStyle = color;
+      sctx.beginPath(); sctx.arc(xx, yy, 3.2 * dpr, 0, Math.PI * 2); sctx.fill();
+
+      sctx.globalAlpha = alpha;
+      sctx.fillStyle = textColor;
+      sctx.font = (10 * dpr) + 'px "IBM Plex Mono", monospace';
+      sctx.textAlign = 'center';
+      sctx.textBaseline = 'bottom';
+      sctx.fillText(fmtHz(wobj.freq), xx, Math.max(topM, yy - 6 * dpr));
+      sctx.globalAlpha = 1;
+    });
+
+    sctx.fillStyle = textColor;
+    sctx.font = '600 ' + (11 * dpr) + 'px "IBM Plex Sans", sans-serif';
+    sctx.textAlign = 'right';
+    sctx.textBaseline = 'alphabetic';
+    sctx.fillText(t('freqAxis'), leftM + plotW, baseY + 22 * dpr);
+  }
+  spectrumDetails.addEventListener('toggle', function () { if (spectrumDetails.open) drawSpectrum(); });
+  window.addEventListener('resize', function () { if (spectrumDetails.open) drawSpectrum(); });
+
+  // --- Language toggle ---
+  function applyStaticI18n() {
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n');
+      el.textContent = t(key);
+    });
+    document.title = t('title');
+  }
+  function setLang(lang) {
+    if (lang !== 'de' && lang !== 'en') return;
+    LANG = lang;
+    document.querySelectorAll('.lang-btn').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-lang') === lang));
+    });
+    applyStaticI18n();
+    playLabel.textContent = playing ? t('stop') : t('play');
+    renderWaves();
+    redraw();
+  }
+  document.querySelectorAll('.lang-btn').forEach(function (b) {
+    b.addEventListener('click', function () { setLang(b.getAttribute('data-lang')); });
+  });
+
+  renderWaves();
+  resizeCanvas();
+})();
+</script>
