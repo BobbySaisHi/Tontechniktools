@@ -1,0 +1,678 @@
+<!doctype html>
+<title>Verdichtung und Verdünnung</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --paper: #f3f4f6;
+    --ink: #1b2430;
+    --ink-soft: #5c6675;
+    --panel: #ffffff;
+    --panel-2: #edeff2;
+    --line: #d8dbe1;
+    --accent: #2f5d8a;
+    --accent-ink: #1d3c57;
+    --warn: #b25c22;
+    --scope-bg: #fbfbfc;
+    --scope-grid: #e4e7eb;
+    --scope-grid-mid: #c7ccd3;
+    --scope-trace: #2f6fb0;
+    --scope-text: #8b95a3;
+    --focus: #2f5d8a;
+    --btn-ink: #ffffff;
+    --compress: #2f5d8a;
+    --rarefy: #edeff2;
+    --particle: #33455c;
+    --shadow: 0 1px 2px rgba(20, 26, 36, 0.05), 0 8px 24px -12px rgba(20, 26, 36, 0.14);
+  }
+
+  /* Deliberately light-only, to match "Einfache Sinusschwingung" and
+     "Überlagerte Schwingungen": this tool is embedded in Moodle pages with
+     varying system themes, so the palette is fixed rather than following
+     prefers-color-scheme. */
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    padding: clamp(14px, 3vw, 28px);
+    display: flex;
+    justify-content: center;
+  }
+
+  .mono { font-family: "IBM Plex Mono", ui-monospace, "SF Mono", monospace; font-variant-numeric: tabular-nums; }
+
+  .sheet { width: 100%; max-width: 820px; display: flex; flex-direction: column; gap: 16px; }
+
+  .lang-toggle { display: flex; justify-content: flex-end; gap: 4px; }
+  button.lang-btn {
+    font-family: "IBM Plex Mono", monospace; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em;
+    color: var(--ink-soft); background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 6px; width: 30px; height: 24px; cursor: pointer;
+  }
+  button.lang-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--btn-ink); }
+  button.lang-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+  h1 { margin: 0; font-size: clamp(1.15rem, 2.4vw, 1.4rem); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+
+  .eyebrow {
+    margin: 0 0 2px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--accent-ink); background: color-mix(in srgb, var(--accent) 22%, transparent);
+    display: inline-block; padding: 3px 8px; border-radius: 999px;
+  }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 18px; }
+
+  .console { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 560px) { .console { grid-template-columns: 1.25fr 1fr; align-items: start; } }
+
+  .readout-block { display: flex; flex-direction: column; gap: 14px; }
+  .readout { display: flex; align-items: baseline; gap: 6px; }
+  .readout .value { font-size: clamp(2.1rem, 6.5vw, 2.7rem); font-weight: 600; line-height: 1; color: var(--accent-ink); }
+  .readout .unit { font-size: 1rem; color: var(--ink-soft); font-weight: 500; }
+
+  label.field-label, .field-label {
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ink-soft); display: block;
+  }
+
+  .param-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px; }
+  .param-head .field-label { margin: 0; }
+  .amp-block { display: flex; flex-direction: column; gap: 4px; }
+
+  input[type="number"] {
+    font-family: "IBM Plex Mono", monospace; font-size: 0.95rem; width: 100%; padding: 7px 9px;
+    border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink);
+  }
+  input[type="number"].freq-number { width: 72px; padding: 4px 7px; font-size: 0.85rem; }
+  input[type="number"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+  input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: transparent; }
+  input[type="range"]::-webkit-slider-runnable-track { height: 4px; background: var(--line); border-radius: 999px; }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; margin-top: -7px; width: 18px; height: 18px; border-radius: 50%;
+    background: var(--accent); border: 2px solid var(--panel); box-shadow: 0 0 0 1px var(--line); cursor: pointer;
+  }
+  input[type="range"]::-moz-range-track { height: 4px; background: var(--line); border-radius: 999px; }
+  input[type="range"]::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 50%; background: var(--accent); border: 2px solid var(--panel); cursor: pointer;
+  }
+  input[type="range"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; }
+  button.chip {
+    font-family: inherit; font-size: 0.76rem; font-weight: 500; color: var(--ink); background: var(--panel-2);
+    border: 1px solid var(--line); border-radius: 999px; padding: 6px 11px; cursor: pointer;
+  }
+  button.chip:hover { border-color: var(--accent); }
+  button.chip:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+  .control-col { display: flex; flex-direction: column; gap: 14px; }
+
+  .btn-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  button.play {
+    font-family: inherit; font-size: 0.85rem; font-weight: 600; color: var(--btn-ink); background: var(--accent);
+    border: none; border-radius: 10px; padding: 10px 16px; cursor: pointer; display: inline-flex; align-items: center;
+    gap: 8px; flex: 0 0 auto;
+  }
+  button.play:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  button.play[aria-pressed="true"] { background: var(--warn); }
+  button.play.secondary { background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); }
+  button.play.secondary[aria-pressed="true"] { background: var(--accent); color: var(--btn-ink); border-color: var(--accent); }
+
+  .icon { width: 14px; height: 14px; flex: 0 0 auto; }
+
+  .vol-row { display: flex; align-items: center; gap: 10px; }
+  .vol-row .field-label { flex: 0 0 auto; }
+
+  .stat-row { display: flex; gap: 18px; }
+  .stat-row .stat-value { font-size: 0.95rem; }
+
+  .scope-card { padding: 0; overflow: hidden; }
+  .scope-card + .scope-card { margin-top: -2px; }
+  .scope-head {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--panel-2);
+  }
+  .scope-head .field-label { margin: 0; }
+  .scope-readouts { display: flex; gap: 16px; font-size: 0.78rem; }
+  .scope-readouts b { color: var(--ink); font-weight: 600; }
+  .scope-readouts span.k { color: var(--ink-soft); }
+  .scope-hint { padding: 8px 14px 12px; font-size: 0.72rem; color: var(--ink-soft); border-top: 1px solid var(--line); }
+  .scope-legend { display: flex; gap: 14px; font-size: 0.72rem; color: var(--ink-soft); padding: 0 14px 10px; }
+  .scope-legend .dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 5px; vertical-align: -1px; }
+
+  canvas#particles { display: block; width: 100%; height: 128px; background: var(--scope-bg); }
+  canvas#pressure { display: block; width: 100%; height: 180px; background: var(--scope-bg); }
+
+  .link-brace { display: flex; justify-content: center; margin: -4px 0; opacity: 0.55; }
+  .link-brace svg { width: 28px; height: 10px; }
+
+  footer { font-size: 0.72rem; color: var(--ink-soft); text-align: center; padding-top: 2px; }
+</style>
+
+<div class="sheet">
+  <div class="lang-toggle">
+    <button class="lang-btn" data-lang="de" type="button" aria-pressed="true">DE</button>
+    <button class="lang-btn" data-lang="en" type="button" aria-pressed="false">EN</button>
+  </div>
+
+  <header>
+    <div>
+      <span class="eyebrow" data-i18n="eyebrow">Akustik · Schallausbreitung</span>
+      <h1 data-i18n="title">Verdichtung und Verdünnung</h1>
+    </div>
+  </header>
+
+  <div class="card console">
+    <div class="readout-block">
+      <div>
+        <label class="field-label" for="freqNumber" data-i18n="frequency">Frequenz</label>
+        <div class="readout">
+          <span class="value mono" id="freqValue">440</span>
+          <span class="unit">Hz</span>
+        </div>
+        <input type="range" id="freqSlider" min="0" max="1000" step="1" aria-label="Frequenz in Hertz (logarithmisch)">
+        <input type="number" id="freqNumber" min="1" max="20000" step="1" value="440" aria-label="Frequenz in Hertz eingeben">
+        <div class="presets">
+          <button class="chip" data-freq="20" type="button" data-i18n="presetLow">20 Hz · untere Hörgrenze</button>
+          <button class="chip" data-freq="440" type="button" data-i18n="preset440">440 Hz · Kammerton A</button>
+          <button class="chip" data-freq="20000" type="button" data-i18n="presetHigh">20 000 Hz · obere Hörgrenze</button>
+        </div>
+      </div>
+
+      <div class="amp-block">
+        <div class="param-head">
+          <label class="field-label" for="ampNumber" data-i18n="amplitude">Amplitude</label>
+          <span><input type="number" class="freq-number mono" id="ampNumber" min="0" max="100" step="1" value="70"> %</span>
+        </div>
+        <input type="range" id="ampSlider" min="0" max="100" step="1" value="70" aria-label="Amplitude in Prozent">
+      </div>
+    </div>
+
+    <div class="control-col">
+      <div class="btn-row">
+        <button class="play" id="playBtn" type="button" aria-pressed="true">
+          <svg class="icon" id="playIcon" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14"></rect><rect x="14" y="5" width="4" height="14"></rect></svg>
+          <span id="playLabel" data-i18n="pause">Animation pausieren</span>
+        </button>
+        <button class="play secondary" id="toneBtn" type="button" aria-pressed="false">
+          <svg class="icon" id="toneIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <span id="toneLabel" data-i18n="playTone">Ton dazu</span>
+        </button>
+      </div>
+      <div class="vol-row">
+        <label class="field-label" for="volSlider" data-i18n="abhoerlautstaerke">Abhörlautstärke</label>
+        <input type="range" id="volSlider" min="0" max="100" step="1" value="15" aria-label="Abhörlautstärke">
+      </div>
+      <div class="stat-row">
+        <div>
+          <div class="field-label" data-i18n="periodendauer">Periodendauer</div>
+          <div class="mono stat-value" id="periodValue">2,27 ms</div>
+        </div>
+        <div>
+          <div class="field-label" data-i18n="wellenlaenge">Wellenlänge λ</div>
+          <div class="mono stat-value" id="wavelengthValue">78 cm</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card scope-card">
+    <div class="scope-head">
+      <span class="field-label" data-i18n="particlesHeader">Luftteilchen im Rohr</span>
+      <div class="scope-readouts">
+        <span><span class="k" data-i18n="fensterLabel">Fenster&nbsp;</span><b class="mono" id="windowValue">1,00 m</b></span>
+      </div>
+    </div>
+    <canvas id="particles" width="1200" height="256"></canvas>
+    <div class="scope-legend">
+      <span><span class="dot" style="background:var(--compress);"></span><span data-i18n="verdichtung">Verdichtung</span></span>
+      <span><span class="dot" style="background:var(--rarefy); border:1px solid var(--line);"></span><span data-i18n="verduennung">Verdünnung</span></span>
+    </div>
+  </div>
+
+  <div class="link-brace" aria-hidden="true">
+    <svg viewBox="0 0 28 10"><path d="M0 0 Q14 10 28 0" fill="none" stroke="currentColor" stroke-width="1"></path></svg>
+  </div>
+
+  <div class="card scope-card">
+    <div class="scope-head">
+      <span class="field-label" data-i18n="pressureHeader">Äquivalente Sinuskurve (Druck)</span>
+    </div>
+    <canvas id="pressure" width="1200" height="360"></canvas>
+    <div class="scope-hint" data-i18n="scopeHint">Jedes Teilchen schwingt nur vor und zurück in Ausbreitungsrichtung (Longitudinalwelle). Wo Teilchen zusammenrücken, herrscht Überdruck (Verdichtung) – die Druckkurve zeigt dort einen Wellenberg. Wo sie auseinanderrücken, herrscht Unterdruck (Verdünnung) – ein Wellental. Die Sinuskurve ist also nicht die Bahn der Teilchen, sondern eine andere Größe (Druck), die dasselbe Schwingungsmuster abbildet.</div>
+  </div>
+
+  <footer data-i18n="footer">v = 343 m/s (Schallgeschwindigkeit in Luft, 20&nbsp;°C) · λ = v / f · T = 1 / f</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // --- i18n ---
+  var I18N = {
+    de: {
+      eyebrow: 'Akustik · Schallausbreitung',
+      title: 'Verdichtung und Verdünnung',
+      frequency: 'Frequenz',
+      amplitude: 'Amplitude',
+      presetLow: '20 Hz · untere Hörgrenze',
+      preset440: '440 Hz · Kammerton A',
+      presetHigh: '20 000 Hz · obere Hörgrenze',
+      pause: 'Animation pausieren',
+      resume: 'Animation fortsetzen',
+      playTone: 'Ton dazu',
+      stopTone: 'Ton stoppen',
+      abhoerlautstaerke: 'Abhörlautstärke',
+      periodendauer: 'Periodendauer',
+      wellenlaenge: 'Wellenlänge λ',
+      particlesHeader: 'Luftteilchen im Rohr',
+      fensterLabel: 'Fenster ',
+      verdichtung: 'Verdichtung',
+      verduennung: 'Verdünnung',
+      pressureHeader: 'Äquivalente Sinuskurve (Druck)',
+      scopeHint: 'Jedes Teilchen schwingt nur vor und zurück in Ausbreitungsrichtung (Longitudinalwelle). Wo Teilchen zusammenrücken, herrscht Überdruck (Verdichtung) – die Druckkurve zeigt dort einen Wellenberg. Wo sie auseinanderrücken, herrscht Unterdruck (Verdünnung) – ein Wellental. Die Sinuskurve ist also nicht die Bahn der Teilchen, sondern eine andere Größe (Druck), die dasselbe Schwingungsmuster abbildet.',
+      footer: 'v = 343 m/s (Schallgeschwindigkeit in Luft, 20 °C) · λ = v / f · T = 1 / f',
+      xAxis: 'x (m)',
+      pAxis: 'p (rel.)'
+    },
+    en: {
+      eyebrow: 'Acoustics · Sound propagation',
+      title: 'Compression and Rarefaction',
+      frequency: 'Frequency',
+      amplitude: 'Amplitude',
+      presetLow: '20 Hz · lower hearing limit',
+      preset440: '440 Hz · concert pitch A',
+      presetHigh: '20,000 Hz · upper hearing limit',
+      pause: 'Pause animation',
+      resume: 'Resume animation',
+      playTone: 'Add tone',
+      stopTone: 'Stop tone',
+      abhoerlautstaerke: 'Monitoring volume',
+      periodendauer: 'Period',
+      wellenlaenge: 'Wavelength λ',
+      particlesHeader: 'Air particles in a tube',
+      fensterLabel: 'Window ',
+      verdichtung: 'Compression',
+      verduennung: 'Rarefaction',
+      pressureHeader: 'Equivalent sine curve (pressure)',
+      scopeHint: 'Each particle only oscillates back and forth along the direction of travel (a longitudinal wave). Where particles bunch together, pressure is above average (compression) – the pressure curve shows a crest there. Where they spread apart, pressure is below average (rarefaction) – a trough. So the sine curve is not the particles’ path, but a different quantity (pressure) that traces the same oscillation pattern.',
+      footer: 'v = 343 m/s (speed of sound in air, 20 °C) · λ = v / f · T = 1 / f',
+      xAxis: 'x (m)',
+      pAxis: 'p (rel.)'
+    }
+  };
+  var LANG = 'de';
+  function t(key) { return I18N[LANG][key]; }
+
+  function applyStaticI18n() {
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      el.textContent = t(el.getAttribute('data-i18n'));
+    });
+    document.title = t('title');
+  }
+
+  document.querySelectorAll('.lang-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      LANG = btn.getAttribute('data-lang');
+      document.querySelectorAll('.lang-btn').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b === btn));
+      });
+      applyStaticI18n();
+      playLabel.textContent = running ? t('pause') : t('resume');
+      toneLabel.textContent = toneOn ? t('stopTone') : t('playTone');
+    });
+  });
+
+  // --- Constants (shared physics conventions with "Einfache Sinusschwingung") ---
+  var FREQ_MIN = 1, FREQ_MAX = 20000;
+  var LOG_MIN = Math.log10(FREQ_MIN), LOG_MAX = Math.log10(FREQ_MAX);
+  var SLIDER_MAX = 1000;
+  var SPEED_OF_SOUND = 343; // m/s
+  var WINDOW_M = 1; // fixed physical distance shown, regardless of frequency
+  var ANIM_SLOWDOWN = 1 / 500; // same visual crossing speed for every frequency
+  var PARTICLE_COUNT = 90;
+
+  var freq = 440;
+  var ampFrac = 0.7;
+  var running = true;
+  var toneOn = false;
+  var audioCtx = null, osc = null, gainNode = null;
+
+  var freqSlider = document.getElementById('freqSlider');
+  var freqNumber = document.getElementById('freqNumber');
+  var freqValue = document.getElementById('freqValue');
+  var ampSlider = document.getElementById('ampSlider');
+  var ampNumber = document.getElementById('ampNumber');
+  var periodValue = document.getElementById('periodValue');
+  var wavelengthValue = document.getElementById('wavelengthValue');
+  var windowValue = document.getElementById('windowValue');
+  var playBtn = document.getElementById('playBtn');
+  var playLabel = document.getElementById('playLabel');
+  var playIcon = document.getElementById('playIcon');
+  var toneBtn = document.getElementById('toneBtn');
+  var toneLabel = document.getElementById('toneLabel');
+  var toneIcon = document.getElementById('toneIcon');
+  var volSlider = document.getElementById('volSlider');
+  var particleCanvas = document.getElementById('particles');
+  var pctx = particleCanvas.getContext('2d');
+  var pressureCanvas = document.getElementById('pressure');
+  var rctx = pressureCanvas.getContext('2d');
+
+  function freqToSlider(f) {
+    var tt = (Math.log10(f) - LOG_MIN) / (LOG_MAX - LOG_MIN);
+    return Math.round(tt * SLIDER_MAX);
+  }
+  function sliderToFreq(s) {
+    var tt = s / SLIDER_MAX;
+    return Math.pow(10, LOG_MIN + tt * (LOG_MAX - LOG_MIN));
+  }
+  function fmtHz(f) { return Math.round(f).toLocaleString('de-DE'); }
+  function fmtMs(ms) {
+    var digits = ms < 10 ? 2 : ms < 100 ? 1 : 0;
+    return ms.toLocaleString('de-DE', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  }
+
+  function setFreq(f, opts) {
+    opts = opts || {};
+    f = Math.min(FREQ_MAX, Math.max(FREQ_MIN, f));
+    freq = f;
+    if (!opts.skipSlider) freqSlider.value = freqToSlider(f);
+    if (!opts.skipNumber) freqNumber.value = Math.round(f);
+    freqValue.textContent = fmtHz(f);
+
+    var periodMs = 1000 / f;
+    periodValue.textContent = fmtMs(periodMs) + ' ms';
+
+    var lambdaM = SPEED_OF_SOUND / f;
+    if (lambdaM < 1) {
+      wavelengthValue.textContent = fmtMs(lambdaM * 100).replace(/\s?ms$/, '') + ' cm';
+    } else {
+      wavelengthValue.textContent = lambdaM.toLocaleString('de-DE', { maximumFractionDigits: 2 }) + ' m';
+    }
+
+    if (toneOn && osc) osc.frequency.setValueAtTime(f, audioCtx.currentTime);
+  }
+
+  function setAmp(a, opts) {
+    opts = opts || {};
+    a = Math.min(100, Math.max(0, a));
+    ampFrac = a / 100;
+    if (!opts.skipSlider) ampSlider.value = Math.round(a);
+    if (!opts.skipNumber) ampNumber.value = Math.round(a);
+  }
+
+  freqSlider.addEventListener('input', function () {
+    setFreq(sliderToFreq(Number(freqSlider.value)), { skipSlider: true });
+  });
+  freqNumber.addEventListener('input', function () {
+    var v = Number(freqNumber.value);
+    if (!isNaN(v) && v > 0) setFreq(v, { skipNumber: true });
+  });
+  ampSlider.addEventListener('input', function () {
+    setAmp(Number(ampSlider.value), { skipSlider: true });
+  });
+  ampNumber.addEventListener('input', function () {
+    var v = Number(ampNumber.value);
+    if (!isNaN(v)) setAmp(v, { skipNumber: true });
+  });
+  document.querySelectorAll('.chip').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      setFreq(Number(btn.getAttribute('data-freq')));
+    });
+  });
+
+  // --- Animation run/pause (freezes the shared clock, both canvases stay in sync) ---
+  var t0 = performance.now();
+  var pausedAt = 0;
+
+  playBtn.addEventListener('click', function () {
+    if (running) {
+      running = false;
+      pausedAt = performance.now();
+      playBtn.setAttribute('aria-pressed', 'false');
+      playLabel.textContent = t('resume');
+      playIcon.innerHTML = '<path d="M8 5v14l11-7z"></path>';
+    } else {
+      running = true;
+      t0 += performance.now() - pausedAt;
+      playBtn.setAttribute('aria-pressed', 'true');
+      playLabel.textContent = t('pause');
+      playIcon.innerHTML = '<rect x="6" y="5" width="4" height="14"></rect><rect x="14" y="5" width="4" height="14"></rect>';
+    }
+  });
+
+  // --- Optional tone: audible confirmation of the same frequency ---
+  function ensureAudio() {
+    if (!audioCtx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AC();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  function startTone() {
+    ensureAudio();
+    osc = audioCtx.createOscillator();
+    gainNode = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    var vol = Number(volSlider.value) / 100 * 0.4;
+    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(vol, audioCtx.currentTime + 0.03);
+    osc.connect(gainNode).connect(audioCtx.destination);
+    osc.start();
+    toneOn = true;
+    toneBtn.setAttribute('aria-pressed', 'true');
+    toneLabel.textContent = t('stopTone');
+    toneIcon.innerHTML = '<rect x="6" y="5" width="4" height="14"></rect><rect x="14" y="5" width="4" height="14"></rect>';
+  }
+  function stopTone() {
+    if (osc && audioCtx) {
+      var now = audioCtx.currentTime;
+      gainNode.gain.cancelScheduledValues(now);
+      gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+      gainNode.gain.linearRampToValueAtTime(0, now + 0.03);
+      osc.stop(now + 0.05);
+    }
+    toneOn = false;
+    toneBtn.setAttribute('aria-pressed', 'false');
+    toneLabel.textContent = t('playTone');
+    toneIcon.innerHTML = '<path d="M8 5v14l11-7z"></path>';
+  }
+  toneBtn.addEventListener('click', function () {
+    if (toneOn) stopTone(); else startTone();
+  });
+  volSlider.addEventListener('input', function () {
+    if (toneOn && gainNode && audioCtx) {
+      var vol = Number(volSlider.value) / 100 * 0.4;
+      gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
+    }
+  });
+
+  // --- Shared field: s(x,t) = sin(phase) is the particle displacement along
+  // x; p(x,t) = -cos(phase) is the pressure/density deviation (90° phase-
+  // shifted, since p ∝ -ds/dx). Compression (p max) always sits at a
+  // zero-crossing of the displacement, not at a displacement extreme. ---
+  function phaseAt(xM, elapsedSec) {
+    var vEff = SPEED_OF_SOUND * ANIM_SLOWDOWN;
+    var lambdaM = SPEED_OF_SOUND / freq;
+    return 2 * Math.PI * (xM - vEff * elapsedSec) / lambdaM;
+  }
+  function pressureAt(xM, elapsedSec) { return -Math.cos(phaseAt(xM, elapsedSec)); }
+  function displacementAt(xM, elapsedSec) { return Math.sin(phaseAt(xM, elapsedSec)); }
+
+  function getVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+  function compressColor(p, mixColor, baseColor) {
+    // p in [-1, 1]; positive = compression (toward accent), negative = rarefaction (toward paper)
+    var frac = Math.max(0, Math.min(1, (p + 1) / 2));
+    return 'color-mix(in srgb, ' + mixColor + ' ' + Math.round(frac * 100) + '%, ' + baseColor + ')';
+  }
+
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+  function resizeCanvases() {
+    [particleCanvas, pressureCanvas].forEach(function (c) {
+      var rect = c.getBoundingClientRect();
+      var h = rect.height || 150;
+      c.width = Math.round(rect.width * dpr);
+      c.height = Math.round(h * dpr);
+    });
+  }
+  window.addEventListener('resize', resizeCanvases);
+  resizeCanvases();
+
+  // Fixed rest layout for particles: three staggered rows, generated once
+  // with a seeded PRNG so the arrangement is stable across frames/resizes.
+  var restParticles = (function () {
+    var seed = 42;
+    function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return (seed / 0x7fffffff); }
+    // Even, near-grid layout (rows gently offset, only a touch of jitter) —
+    // a regular starting pattern makes the compression/rarefaction bunching
+    // read clearly, instead of being lost in random scatter.
+    var rows = [0.16, 0.32, 0.5, 0.68, 0.84];
+    var perRow = Math.ceil(PARTICLE_COUNT / rows.length);
+    var list = [];
+    rows.forEach(function (rowY, rowIdx) {
+      var offset = (rowIdx % 2) * (0.5 / perRow);
+      for (var i = 0; i < perRow; i++) {
+        var xr = (i + 0.5) / perRow + offset + (rnd() - 0.5) * (0.12 / perRow);
+        list.push({ xr: Math.max(0.005, Math.min(0.995, xr)), yr: Math.max(0.02, Math.min(0.98, rowY + (rnd() - 0.5) * 0.05)) });
+      }
+    });
+    return list;
+  })();
+
+  function drawParticles(elapsedSec, leftM, plotW, topM, plotH) {
+    var w = particleCanvas.width, h = particleCanvas.height;
+    pctx.clearRect(0, 0, w, h);
+    pctx.fillStyle = getVar('--scope-bg');
+    pctx.fillRect(0, 0, w, h);
+
+    // compression/rarefaction background band, sampled in coarse columns
+    var compress = getVar('--compress'), rarefy = getVar('--rarefy');
+    var bandSteps = 90;
+    for (var i = 0; i < bandSteps; i++) {
+      var xr0 = i / bandSteps, xr1 = (i + 1) / bandSteps;
+      var xM = ((xr0 + xr1) / 2) * WINDOW_M;
+      var p = pressureAt(xM, elapsedSec);
+      pctx.fillStyle = compressColor(p, compress, rarefy);
+      pctx.globalAlpha = 0.78;
+      pctx.fillRect(leftM + xr0 * plotW, topM, (xr1 - xr0) * plotW + 1, plotH);
+    }
+    pctx.globalAlpha = 1;
+
+    // particles: displaced only along x (longitudinal) — pushed well past
+    // neighbour spacing at high amplitude so compression bands read as a
+    // hard pile-up, not just a gentle bunching
+    var maxDispPix = (plotW / (PARTICLE_COUNT / 5)) * 1.35 * ampFrac;
+    var particleColor = getVar('--particle');
+    pctx.fillStyle = particleColor;
+    var r = Math.max(2.6, 3.4 * dpr);
+    restParticles.forEach(function (pt) {
+      var xM = pt.xr * WINDOW_M;
+      var s = displacementAt(xM, elapsedSec);
+      var x = leftM + pt.xr * plotW + s * maxDispPix;
+      var y = topM + pt.yr * plotH;
+      pctx.beginPath();
+      pctx.arc(x, y, r, 0, Math.PI * 2);
+      pctx.fill();
+    });
+  }
+
+  function drawPressure(elapsedSec, leftM, rightM, topM, plotW, plotH) {
+    var w = pressureCanvas.width, h = pressureCanvas.height;
+    rctx.clearRect(0, 0, w, h);
+    rctx.fillStyle = getVar('--scope-bg');
+    rctx.fillRect(0, 0, w, h);
+
+    var gridColor = getVar('--scope-grid');
+    var midColor = getVar('--scope-grid-mid');
+    var textColor = getVar('--scope-text');
+    var traceColor = getVar('--scope-trace');
+    var midY = topM + plotH / 2;
+
+    // vertical gridlines: distance, every 10 cm across the fixed 1 m window
+    var xStepM = 0.1;
+    rctx.strokeStyle = gridColor;
+    rctx.lineWidth = 1;
+    rctx.font = (10.5 * dpr) + 'px "IBM Plex Mono", monospace';
+    rctx.fillStyle = textColor;
+    for (var xv = 0; xv <= WINDOW_M + 1e-9; xv += xStepM) {
+      var xx = leftM + (xv / WINDOW_M) * plotW;
+      rctx.beginPath(); rctx.moveTo(Math.round(xx) + 0.5, topM); rctx.lineTo(Math.round(xx) + 0.5, topM + plotH); rctx.stroke();
+      if (Math.round(xv * 10) % 2 === 0) {
+        rctx.textAlign = 'center';
+        rctx.textBaseline = 'top';
+        rctx.fillText(Math.round(xv * 100) + ' cm', xx, topM + plotH + 5 * dpr);
+      }
+    }
+
+    // horizontal gridlines
+    rctx.strokeStyle = midColor;
+    rctx.beginPath(); rctx.moveTo(leftM, Math.round(midY) + 0.5); rctx.lineTo(leftM + plotW, Math.round(midY) + 0.5); rctx.stroke();
+    rctx.strokeStyle = gridColor;
+    [-0.5, 0.5].forEach(function (frac) {
+      var yy = midY - frac * (plotH / 2);
+      rctx.beginPath(); rctx.moveTo(leftM, Math.round(yy) + 0.5); rctx.lineTo(leftM + plotW, Math.round(yy) + 0.5); rctx.stroke();
+    });
+
+    // pressure trace
+    var amp = (plotH / 2) * 0.88 * ampFrac;
+    rctx.beginPath();
+    rctx.strokeStyle = traceColor;
+    rctx.lineWidth = Math.max(2, 2 * dpr);
+    rctx.lineJoin = 'round';
+    var steps = Math.max(2, Math.round(plotW));
+    for (var i = 0; i <= steps; i++) {
+      var xr = i / steps;
+      var xM = xr * WINDOW_M;
+      var p = pressureAt(xM, elapsedSec);
+      var y = midY - p * amp;
+      var x = leftM + xr * plotW;
+      if (i === 0) rctx.moveTo(x, y); else rctx.lineTo(x, y);
+    }
+    rctx.stroke();
+
+    // axis captions
+    rctx.fillStyle = textColor;
+    rctx.font = '600 ' + (11 * dpr) + 'px "IBM Plex Sans", sans-serif';
+    rctx.textAlign = 'right';
+    rctx.textBaseline = 'alphabetic';
+    rctx.fillText(t('xAxis'), leftM + plotW, topM + plotH + 19 * dpr);
+    rctx.textAlign = 'left';
+    rctx.fillText(t('pAxis'), leftM, topM - 3 * dpr < 10 * dpr ? topM + 10 * dpr : topM - 3 * dpr);
+  }
+
+  function frame(now) {
+    requestAnimationFrame(frame);
+    var wP = particleCanvas.width, hP = particleCanvas.height;
+    var wR = pressureCanvas.width, hR = pressureCanvas.height;
+    if (wP === 0 || hP === 0 || wR === 0 || hR === 0) return;
+
+    var elapsedSec = ((running ? now : pausedAt) - t0) / 1000;
+
+    var leftM = 6 * dpr, rightM = 6 * dpr;
+    var plotW = wP - leftM - rightM; // both canvases share the same left/right margins -> aligned x-axes
+    var topP = 6 * dpr, bottomP = 6 * dpr;
+    drawParticles(elapsedSec, leftM, plotW, topP, hP - topP - bottomP);
+
+    var topR = 16 * dpr, bottomR = 22 * dpr;
+    drawPressure(elapsedSec, leftM, rightM, topR, wR - leftM - rightM, hR - topR - bottomR);
+  }
+
+  requestAnimationFrame(frame);
+
+  windowValue.textContent = WINDOW_M.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' m';
+
+  applyStaticI18n();
+  setFreq(440);
+  setAmp(70);
+})();
+</script>
