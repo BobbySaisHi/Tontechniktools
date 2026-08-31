@@ -1,51 +1,64 @@
-<title>Frequenzoszilloskop</title>
+<title>Einfache Sinusschwingung</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
   :root {
-    --paper: #eef1ec;
-    --ink: #16221c;
-    --ink-soft: #55665c;
+    --paper: #f3f4f6;
+    --ink: #1b2430;
+    --ink-soft: #5c6675;
     --panel: #ffffff;
-    --panel-2: #e4e8e1;
-    --line: #cdd6cc;
-    --accent: #1f8f5c;
-    --accent-ink: #0d3d27;
-    --warn: #b0592a;
-    --scope-bg: #081109;
-    --scope-grid: #1b3323;
-    --scope-grid-mid: #234230;
-    --scope-trace: #4be39a;
-    --scope-text: #6fae8a;
-    --focus: #1f8f5c;
-    --shadow: 0 1px 2px rgba(22, 34, 28, 0.06), 0 8px 24px -12px rgba(22, 34, 28, 0.18);
+    --panel-2: #edeff2;
+    --line: #d8dbe1;
+    --accent: #2f5d8a;
+    --accent-ink: #1d3c57;
+    --warn: #b25c22;
+    --scope-bg: #fbfbfc;
+    --scope-grid: #e4e7eb;
+    --scope-grid-mid: #c7ccd3;
+    --scope-trace: #2f6fb0;
+    --scope-text: #8b95a3;
+    --focus: #2f5d8a;
+    --btn-ink: #ffffff;
+    --shadow: 0 1px 2px rgba(20, 26, 36, 0.05), 0 8px 24px -12px rgba(20, 26, 36, 0.14);
   }
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --paper: #0f1613;
-      --ink: #e9efe9;
-      --ink-soft: #93a89c;
-      --panel: #16211c;
-      --panel-2: #1c2921;
-      --line: #2a3a31;
-      --accent: #4be39a;
-      --accent-ink: #0b1210;
-      --warn: #e08a52;
+      --paper: #10151c;
+      --ink: #e7ebf0;
+      --ink-soft: #8f99a8;
+      --panel: #171e28;
+      --panel-2: #1d2531;
+      --line: #2a3441;
+      --accent: #6ea8dd;
+      --accent-ink: #dbe9f7;
+      --warn: #e0925a;
+      --scope-bg: #12171f;
+      --scope-grid: #232c38;
+      --scope-grid-mid: #333f4e;
+      --scope-trace: #7fb2e0;
+      --scope-text: #8496a9;
+      --btn-ink: #0d1520;
       --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
     }
   }
 
   :root[data-theme="dark"] {
-    --paper: #0f1613;
-    --ink: #e9efe9;
-    --ink-soft: #93a89c;
-    --panel: #16211c;
-    --panel-2: #1c2921;
-    --line: #2a3a31;
-    --accent: #4be39a;
-    --accent-ink: #0b1210;
-    --warn: #e08a52;
+    --paper: #10151c;
+    --ink: #e7ebf0;
+    --ink-soft: #8f99a8;
+    --panel: #171e28;
+    --panel-2: #1d2531;
+    --line: #2a3441;
+    --accent: #6ea8dd;
+    --accent-ink: #dbe9f7;
+    --warn: #e0925a;
+    --scope-bg: #12171f;
+    --scope-grid: #232c38;
+    --scope-grid-mid: #333f4e;
+    --scope-trace: #7fb2e0;
+    --scope-text: #8496a9;
+    --btn-ink: #0d1520;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
   }
 
@@ -99,9 +112,6 @@
     border-radius: 999px;
   }
 
-  :root[data-theme="dark"] .eyebrow,
-  @media (prefers-color-scheme: dark) { }
-
   .card {
     background: var(--panel);
     border: 1px solid var(--line);
@@ -134,12 +144,6 @@
     line-height: 1;
     color: var(--accent-ink);
   }
-  :root[data-theme="dark"] .readout .value,
-  html:not([data-theme="light"]) .readout .value {}
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .readout .value { color: var(--accent); }
-  }
-  :root[data-theme="dark"] .readout .value { color: var(--accent); }
 
   .readout .unit {
     font-size: 1rem;
@@ -228,7 +232,7 @@
     font-family: inherit;
     font-size: 0.85rem;
     font-weight: 600;
-    color: var(--accent-ink);
+    color: var(--btn-ink);
     background: var(--accent);
     border: none;
     border-radius: 10px;
@@ -239,12 +243,6 @@
     gap: 8px;
     flex: 0 0 auto;
   }
-  :root[data-theme="dark"] button.play,
-  @media (prefers-color-scheme: dark) { }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) button.play { color: #06140d; }
-  }
-  :root[data-theme="dark"] button.play { color: #06140d; }
   button.play:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   button.play[aria-pressed="true"] { background: var(--warn); }
 
@@ -315,7 +313,7 @@
   <header>
     <div>
       <span class="eyebrow">Akustik · Schwingungen</span>
-      <h1>Frequenzoszilloskop</h1>
+      <h1>Einfache Sinusschwingung</h1>
     </div>
   </header>
 
@@ -580,8 +578,6 @@
     ctx.strokeStyle = traceColor;
     ctx.lineWidth = Math.max(2, 2 * dpr);
     ctx.lineJoin = 'round';
-    ctx.shadowColor = traceColor;
-    ctx.shadowBlur = 6 * dpr;
 
     var steps = w;
     for (var i = 0; i <= steps; i++) {
@@ -592,7 +588,6 @@
       if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     ctx.stroke();
-    ctx.shadowBlur = 0;
 
     ctx.fillStyle = textColor;
     ctx.font = (11 * dpr) + 'px "IBM Plex Mono", monospace';
