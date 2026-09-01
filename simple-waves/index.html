@@ -1,0 +1,1085 @@
+<title>Einfache Sinusschwingung</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --paper: #f3f4f6;
+    --ink: #1b2430;
+    --ink-soft: #5c6675;
+    --panel: #ffffff;
+    --panel-2: #edeff2;
+    --line: #d8dbe1;
+    --accent: #2f5d8a;
+    --accent-ink: #1d3c57;
+    --warn: #b25c22;
+    --scope-bg: #fbfbfc;
+    --scope-grid: #e4e7eb;
+    --scope-grid-mid: #c7ccd3;
+    --scope-trace: #2f6fb0;
+    --scope-text: #8b95a3;
+    --focus: #2f5d8a;
+    --btn-ink: #ffffff;
+    --compress: #2f5d8a;
+    --rarefy: #edeff2;
+    --particle: #33455c;
+    --track: #1f8a4c;
+    --shadow: 0 1px 2px rgba(20, 26, 36, 0.05), 0 8px 24px -12px rgba(20, 26, 36, 0.14);
+  }
+
+  /* Deliberately light-only, to match "Überlagerte Schwingungen": this tool is
+     embedded in Moodle pages with varying system themes, so the palette is
+     fixed rather than following prefers-color-scheme. */
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    padding: clamp(14px, 3vw, 28px);
+    display: flex;
+    justify-content: center;
+  }
+
+  .mono { font-family: "IBM Plex Mono", ui-monospace, "SF Mono", monospace; font-variant-numeric: tabular-nums; }
+
+  .sheet { width: 100%; max-width: 760px; display: flex; flex-direction: column; gap: 16px; }
+
+  .lang-toggle { display: flex; justify-content: flex-end; gap: 4px; }
+  button.lang-btn {
+    font-family: "IBM Plex Mono", monospace; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em;
+    color: var(--ink-soft); background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 6px; width: 30px; height: 24px; cursor: pointer;
+  }
+  button.lang-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--btn-ink); }
+  button.lang-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(1.15rem, 2.4vw, 1.4rem);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  .eyebrow {
+    margin: 0 0 2px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    background: color-mix(in srgb, var(--accent) 22%, transparent);
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 18px;
+  }
+
+  .console {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  @media (min-width: 520px) {
+    .console { grid-template-columns: 1.3fr 1fr; align-items: start; }
+  }
+
+  .readout-block { display: flex; flex-direction: column; gap: 14px; }
+
+  .readout {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .readout .value {
+    font-size: clamp(2.2rem, 7vw, 2.9rem);
+    font-weight: 600;
+    line-height: 1;
+    color: var(--accent-ink);
+  }
+
+  .readout .unit {
+    font-size: 1rem;
+    color: var(--ink-soft);
+    font-weight: 500;
+  }
+
+  label.field-label, .field-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    display: block;
+  }
+
+  .param-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px; }
+  .param-head .field-label { margin: 0; }
+  .amp-block { display: flex; flex-direction: column; gap: 4px; }
+
+  input[type="number"] {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.95rem;
+    width: 100%;
+    padding: 7px 9px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--panel-2);
+    color: var(--ink);
+  }
+  input[type="number"].freq-number { width: 72px; padding: 4px 7px; font-size: 0.85rem; }
+  input[type="number"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 22px;
+    background: transparent;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px;
+    background: var(--line);
+    border-radius: 999px;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    margin-top: -7px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--panel);
+    box-shadow: 0 0 0 1px var(--line);
+    cursor: pointer;
+  }
+  input[type="range"]::-moz-range-track {
+    height: 4px;
+    background: var(--line);
+    border-radius: 999px;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--panel);
+    cursor: pointer;
+  }
+  input[type="range"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  button.chip {
+    font-family: inherit;
+    font-size: 0.76rem;
+    font-weight: 500;
+    color: var(--ink);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 6px 11px;
+    cursor: pointer;
+  }
+  button.chip:hover { border-color: var(--accent); }
+  button.chip:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+  .control-col { display: flex; flex-direction: column; gap: 14px; }
+
+  .play-row { display: flex; align-items: center; gap: 12px; }
+
+  button.play {
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--btn-ink);
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    padding: 10px 16px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+  }
+  button.play:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  button.play[aria-pressed="true"] { background: var(--warn); }
+
+  .icon { width: 14px; height: 14px; flex: 0 0 auto; }
+
+  .vol-row { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 120px; }
+  .vol-row .field-label { flex: 0 0 auto; }
+
+  .stat-row { display: flex; gap: 18px; }
+  .stat-row .stat-value { font-size: 0.95rem; }
+
+  .scope-card { padding: 0; overflow: hidden; }
+  .scope-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel-2);
+  }
+  .scope-head .field-label { margin: 0; }
+  .scope-readouts { display: flex; align-items: center; gap: 12px; font-size: 0.78rem; }
+  button.anim-toggle {
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--ink);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 5px 9px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  button.anim-toggle:hover { border-color: var(--accent); }
+  button.anim-toggle:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  button.anim-toggle[aria-pressed="true"] { background: var(--warn); border-color: var(--warn); color: var(--btn-ink); }
+  button.anim-toggle .icon { width: 12px; height: 12px; }
+  .scope-readouts b { color: var(--ink); font-weight: 600; }
+  .scope-readouts span.k { color: var(--ink-soft); }
+  .scope-hint { padding: 8px 14px 12px; font-size: 0.72rem; color: var(--ink-soft); border-top: 1px solid var(--line); }
+  .scope-legend { display: flex; gap: 14px; font-size: 0.72rem; color: var(--ink-soft); }
+  .scope-legend .dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 5px; vertical-align: -1px; }
+  .scope-head + .scope-head { border-top: 1px solid var(--line); }
+
+  canvas#scope { display: block; width: 100%; height: 200px; background: var(--scope-bg); }
+  canvas#particles { display: block; width: 100%; height: 116px; background: var(--scope-bg); }
+
+  .range-card { display: flex; flex-direction: column; gap: 8px; }
+  .range-bar {
+    position: relative;
+    height: 26px;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    border: 1px solid var(--line);
+  }
+  .range-bar .zone-infra { flex: 0 0 auto; background: var(--panel-2); }
+  .range-bar .zone-audible {
+    flex: 1 1 auto;
+    background: linear-gradient(90deg,
+      var(--panel-2) 0%,
+      color-mix(in srgb, var(--accent) 60%, var(--panel-2)) 8%,
+      color-mix(in srgb, var(--accent) 60%, var(--panel-2)) 92%,
+      var(--panel-2) 100%);
+  }
+  .range-bar .marker {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    width: 2px;
+    background: var(--warn);
+  }
+  .range-bar .marker::after {
+    content: "";
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--warn);
+  }
+  .range-labels { display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--ink-soft); }
+  .range-legend { display: flex; gap: 14px; font-size: 0.72rem; color: var(--ink-soft); }
+  .range-legend .dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 5px; vertical-align: -1px; }
+
+  footer { font-size: 0.72rem; color: var(--ink-soft); text-align: center; padding-top: 2px; }
+</style>
+
+<div class="sheet">
+  <div class="lang-toggle">
+    <button class="lang-btn" data-lang="de" type="button" aria-pressed="true">DE</button>
+    <button class="lang-btn" data-lang="en" type="button" aria-pressed="false">EN</button>
+  </div>
+
+  <header>
+    <div>
+      <span class="eyebrow" data-i18n="eyebrow">Akustik · Schwingungen</span>
+      <h1 data-i18n="title">Einfache Sinusschwingung</h1>
+    </div>
+  </header>
+
+  <div class="card console">
+    <div class="readout-block">
+      <div>
+        <label class="field-label" for="freqNumber" data-i18n="frequency">Frequenz</label>
+        <div class="readout">
+          <span class="value mono" id="freqValue">440</span>
+          <span class="unit">Hz</span>
+        </div>
+        <input type="range" id="freqSlider" min="0" max="1000" step="1" aria-label="Frequenz in Hertz (logarithmisch)">
+        <input type="number" id="freqNumber" min="16" max="20000" step="1" value="440" aria-label="Frequenz in Hertz eingeben">
+        <div class="presets">
+          <button class="chip" data-freq="440" type="button" data-i18n="presetKammerton">440 Hz · Kammerton A</button>
+          <button class="chip" data-freq="587" type="button" data-i18n="presetQuarte">587 Hz · Quarte</button>
+          <button class="chip" data-freq="660" type="button" data-i18n="presetQuinte">660 Hz · Quinte</button>
+          <button class="chip" data-freq="880" type="button" data-i18n="presetOktave">880 Hz · Oktave</button>
+        </div>
+      </div>
+
+      <div class="amp-block">
+        <div class="param-head">
+          <label class="field-label" for="ampNumber" data-i18n="amplitude">Amplitude</label>
+          <span><input type="number" class="freq-number mono" id="ampNumber" min="0" max="100" step="1" value="70"> %</span>
+        </div>
+        <input type="range" id="ampSlider" min="0" max="100" step="1" value="70" aria-label="Amplitude in Prozent">
+      </div>
+    </div>
+
+    <div class="control-col">
+      <div class="play-row">
+        <button class="play" id="playBtn" type="button" aria-pressed="false">
+          <svg class="icon" id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <span id="playLabel" data-i18n="play">Ton abspielen</span>
+        </button>
+      </div>
+      <div class="vol-row">
+        <label class="field-label" for="volSlider" data-i18n="abhoerlautstaerke">Abhörlautstärke</label>
+        <input type="range" id="volSlider" min="0" max="100" step="1" value="15" aria-label="Abhörlautstärke">
+      </div>
+      <div class="stat-row">
+        <div>
+          <div class="field-label" data-i18n="periodendauer">Periodendauer</div>
+          <div class="mono stat-value" id="periodValue">2,27 ms</div>
+        </div>
+        <div>
+          <div class="field-label" data-i18n="wellenlaenge">Wellenlänge λ</div>
+          <div class="mono stat-value" id="wavelengthValue">78 cm</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card scope-card">
+    <div class="scope-head">
+      <span class="field-label" data-i18n="particlesHeader">Luftteilchen</span>
+      <div class="scope-legend">
+        <span><span class="dot" style="background:var(--compress);"></span><span data-i18n="verdichtung">Verdichtung</span></span>
+        <span><span class="dot" style="background:var(--rarefy); border:1px solid var(--line);"></span><span data-i18n="verduennung">Verdünnung</span></span>
+        <span><span class="dot" style="background:var(--track); border-radius:50%;"></span><span data-i18n="trackedParticle">Verfolgtes Teilchen</span></span>
+      </div>
+    </div>
+    <canvas id="particles" width="1200" height="232"></canvas>
+    <div class="scope-head">
+      <span class="field-label" data-i18n="raumHeader">Verlangsamte Darstellung</span>
+      <div class="scope-readouts">
+        <span><span class="k" data-i18n="fensterLabel">Fenster&nbsp;</span><b class="mono" id="windowValue">2,00 m</b></span>
+        <button class="anim-toggle" id="animBtn" type="button" aria-pressed="false">
+          <svg class="icon" id="animIcon" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14"></rect><rect x="14" y="5" width="4" height="14"></rect></svg>
+          <span id="animLabel" data-i18n="animStop">Welle anhalten</span>
+        </button>
+      </div>
+    </div>
+    <canvas id="scope" width="1200" height="400"></canvas>
+    <div class="scope-hint" data-i18n="scopeHint">Momentaufnahme über eine feste Strecke von 1 m. Die Welle bewegt sich für alle Frequenzen mit derselben (verlangsamt dargestellten) Geschwindigkeit nach rechts – nur die Wellenlänge ändert sich mit der Frequenz, nicht das Lauftempo.</div>
+  </div>
+
+  <div class="card range-card">
+    <div class="field-label" data-i18n="hoerbereichLabel">Hörbereich des Menschen</div>
+    <div class="range-bar">
+      <div class="zone-infra" id="zoneInfra"></div>
+      <div class="zone-audible"></div>
+      <div class="marker" id="rangeMarker" style="left: 26%;"></div>
+    </div>
+    <div class="range-labels">
+      <span data-i18n="freqMinLabel">16 Hz</span>
+      <span>1 kHz</span>
+      <span>20 000 Hz</span>
+    </div>
+    <div class="range-legend">
+      <span><span class="dot" style="background:var(--panel-2); border:1px solid var(--line);"></span><span data-i18n="infraschall">Infraschall</span></span>
+      <span><span class="dot" style="background:var(--accent);"></span><span data-i18n="hoerbereich">Hörbereich</span></span>
+    </div>
+  </div>
+
+  <footer data-i18n="footer">v = 343 m/s (Schallgeschwindigkeit in Luft, 20&nbsp;°C) · λ = v / f · T = 1 / f</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // --- i18n ---
+  var I18N = {
+    de: {
+      eyebrow: 'Akustik · Schwingungen',
+      title: 'Einfache Sinusschwingung',
+      frequency: 'Frequenz',
+      amplitude: 'Amplitude',
+      presetKammerton: '440 Hz · Kammerton A',
+      presetQuarte: '587 Hz · Quarte',
+      presetQuinte: '660 Hz · Quinte',
+      presetOktave: '880 Hz · Oktave',
+      play: 'Ton abspielen',
+      stop: 'Ton stoppen',
+      abhoerlautstaerke: 'Abhörlautstärke',
+      periodendauer: 'Periodendauer',
+      wellenlaenge: 'Wellenlänge λ',
+      raumHeader: 'Verlangsamte Darstellung',
+      fensterLabel: 'Fenster ',
+      animPlay: 'Welle fortsetzen',
+      animStop: 'Welle anhalten',
+      particlesHeader: 'Luftteilchen',
+      verdichtung: 'Verdichtung',
+      verduennung: 'Verdünnung',
+      trackedParticle: 'Verfolgtes Teilchen',
+      scopeHint: 'Momentaufnahme über eine Strecke von 2 m, mit Alt+Mausrad zoombar. Gezeigt wird der Schalldruck (wie in einer DAW-Wellenformansicht) – die Kurve bewegt sich für alle Frequenzen mit derselben (verlangsamt dargestellten) Geschwindigkeit nach rechts, nur die Wellenlänge ändert sich mit der Frequenz. Angehalten werden Wellenlänge, Periodendauer und Amplitude eingezeichnet. Oben: Verdichtung/Verdünnung der Luftteilchen an derselben Stelle, inkl. Druckmaximum/-minimum.',
+      hoerbereichLabel: 'Hörbereich des Menschen',
+      infraschall: 'Infraschall',
+      hoerbereich: 'Hörbereich',
+      footer: 'v = 343 m/s (Schallgeschwindigkeit in Luft, 20 °C) · λ = v / f · T = 1 / f',
+      xAxis: 'x (m)',
+      freqMinLabel: '16 Hz',
+      druckMax: 'p-Max',
+      druckMin: 'p-Min'
+    },
+    en: {
+      eyebrow: 'Acoustics · Oscillations',
+      title: 'Simple Sine Wave',
+      frequency: 'Frequency',
+      amplitude: 'Amplitude',
+      presetKammerton: '440 Hz · concert pitch A',
+      presetQuarte: '587 Hz · fourth',
+      presetQuinte: '660 Hz · fifth',
+      presetOktave: '880 Hz · octave',
+      play: 'Play sound',
+      stop: 'Stop sound',
+      abhoerlautstaerke: 'Monitoring volume',
+      periodendauer: 'Period',
+      wellenlaenge: 'Wavelength λ',
+      raumHeader: 'Slowed-down view',
+      fensterLabel: 'Window ',
+      animPlay: 'Resume wave',
+      animStop: 'Pause wave',
+      particlesHeader: 'Air particles',
+      verdichtung: 'Compression',
+      verduennung: 'Rarefaction',
+      trackedParticle: 'Tracked particle',
+      scopeHint: 'Snapshot over a distance of 2 m, zoomable with Alt+scroll wheel. This shows sound pressure (like a DAW waveform view) — the curve travels at the same (slowed-down) speed to the right for every frequency, only the wavelength changes with frequency. When paused, wavelength, period and amplitude are marked on the curve. Above: compression/rarefaction of the air particles at the same location, including the pressure maximum/minimum.',
+      hoerbereichLabel: 'Human hearing range',
+      infraschall: 'Infrasound',
+      hoerbereich: 'Audible range',
+      footer: 'v = 343 m/s (speed of sound in air, 20 °C) · λ = v / f · T = 1 / f',
+      xAxis: 'x (m)',
+      freqMinLabel: '16 Hz',
+      druckMax: 'p max',
+      druckMin: 'p min'
+    }
+  };
+  var LANG = 'de';
+  function t(key) { return I18N[LANG][key]; }
+
+  function applyStaticI18n() {
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      el.textContent = t(el.getAttribute('data-i18n'));
+    });
+    document.title = t('title');
+  }
+
+  document.querySelectorAll('.lang-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      LANG = btn.getAttribute('data-lang');
+      document.querySelectorAll('.lang-btn').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b === btn));
+      });
+      applyStaticI18n();
+      playLabel.textContent = playing ? t('stop') : t('play');
+      animLabel.textContent = animPlaying ? t('animStop') : t('animPlay');
+    });
+  });
+
+  // --- Constants ---
+  var FREQ_MIN = 16, FREQ_MAX = 20000;
+  var LOG_MIN = Math.log10(FREQ_MIN), LOG_MAX = Math.log10(FREQ_MAX);
+  var SLIDER_MAX = 1000;
+  var SPEED_OF_SOUND = 343; // m/s
+  var WINDOW_MIN = 0.2, WINDOW_MAX = 24, WINDOW_DEFAULT = 2;
+  var PARTICLE_COUNT = 90;
+  var windowM = WINDOW_DEFAULT; // visible physical distance, zoomable
+  // The real crossing speed (343 m/s) would cross a 2 m window in ~6 ms — far
+  // too fast to see. ANIM_SLOWDOWN scales time only, uniformly across every
+  // frequency, so the visual propagation speed stays constant for all of
+  // them (no more "bass travels slower" illusion) while remaining visible.
+  var ANIM_SLOWDOWN = 1 / 500;
+
+  var freq = 440;
+  var ampFrac = 0.7;
+  var playing = false;
+  var audioCtx = null, osc = null, gainNode = null;
+  var animPlaying = true;
+  var animAccumSec = 0; // frozen wave-time while paused
+  var lastFrameMs = null;
+
+  var freqSlider = document.getElementById('freqSlider');
+  var freqNumber = document.getElementById('freqNumber');
+  var freqValue = document.getElementById('freqValue');
+  var ampSlider = document.getElementById('ampSlider');
+  var ampNumber = document.getElementById('ampNumber');
+  var periodValue = document.getElementById('periodValue');
+  var wavelengthValue = document.getElementById('wavelengthValue');
+  var windowValue = document.getElementById('windowValue');
+  var rangeMarker = document.getElementById('rangeMarker');
+  var playBtn = document.getElementById('playBtn');
+  var playLabel = document.getElementById('playLabel');
+  var playIcon = document.getElementById('playIcon');
+  var volSlider = document.getElementById('volSlider');
+  var canvas = document.getElementById('scope');
+  var ctx = canvas.getContext('2d');
+  var animBtn = document.getElementById('animBtn');
+  var animLabel = document.getElementById('animLabel');
+  var animIcon = document.getElementById('animIcon');
+  var particleCanvas = document.getElementById('particles');
+  var pctx = particleCanvas.getContext('2d');
+  var zoneInfra = document.getElementById('zoneInfra');
+
+  function freqToSlider(f) {
+    var tt = (Math.log10(f) - LOG_MIN) / (LOG_MAX - LOG_MIN);
+    return Math.round(tt * SLIDER_MAX);
+  }
+  function sliderToFreq(s) {
+    var tt = s / SLIDER_MAX;
+    return Math.pow(10, LOG_MIN + tt * (LOG_MAX - LOG_MIN));
+  }
+
+  // Hörbereich-Leiste: zweigeteilte Log-Skala mit 1 kHz exakt in der Mitte,
+  // statt einer durchgehenden Log-Skala (die 1 kHz sonst bei ~58% platzieren
+  // würde) — reduziert den Platzanteil des 16–20 Hz-Bereichs zugunsten des
+  // musikalisch relevanten Bereichs.
+  var BAR_MID_HZ = 1000;
+  var BAR_LOG_MIN = Math.log10(FREQ_MIN), BAR_LOG_MID = Math.log10(BAR_MID_HZ), BAR_LOG_MAX = Math.log10(FREQ_MAX);
+  function barPercentForFreq(f) {
+    f = Math.min(FREQ_MAX, Math.max(FREQ_MIN, f));
+    if (f <= BAR_MID_HZ) {
+      return 50 * (Math.log10(f) - BAR_LOG_MIN) / (BAR_LOG_MID - BAR_LOG_MIN);
+    }
+    return 50 + 50 * (Math.log10(f) - BAR_LOG_MID) / (BAR_LOG_MAX - BAR_LOG_MID);
+  }
+  zoneInfra.style.flexBasis = barPercentForFreq(20).toFixed(4) + '%';
+
+  function fmtHz(f) {
+    return Math.round(f).toLocaleString('de-DE');
+  }
+  function fmtMs(ms) {
+    var digits = ms < 10 ? 2 : ms < 100 ? 1 : 0;
+    return ms.toLocaleString('de-DE', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  }
+
+  function setFreq(f, opts) {
+    opts = opts || {};
+    f = Math.min(FREQ_MAX, Math.max(FREQ_MIN, f));
+    freq = f;
+    if (!opts.skipSlider) freqSlider.value = freqToSlider(f);
+    if (!opts.skipNumber) freqNumber.value = Math.round(f);
+    freqValue.textContent = fmtHz(f);
+
+    var periodMs = 1000 / f;
+    periodValue.textContent = fmtMs(periodMs) + ' ms';
+
+    var lambdaM = SPEED_OF_SOUND / f;
+    if (lambdaM < 1) {
+      wavelengthValue.textContent = fmtMs(lambdaM * 100).replace(/\s?ms$/, '') + ' cm';
+    } else {
+      wavelengthValue.textContent = lambdaM.toLocaleString('de-DE', { maximumFractionDigits: 2 }) + ' m';
+    }
+
+    rangeMarker.style.left = barPercentForFreq(f) + '%';
+
+    if (playing && osc) {
+      osc.frequency.setValueAtTime(f, audioCtx.currentTime);
+    }
+  }
+
+  function setAmp(a, opts) {
+    opts = opts || {};
+    a = Math.min(100, Math.max(0, a));
+    ampFrac = a / 100;
+    if (!opts.skipSlider) ampSlider.value = Math.round(a);
+    if (!opts.skipNumber) ampNumber.value = Math.round(a);
+  }
+
+  freqSlider.addEventListener('input', function () {
+    setFreq(sliderToFreq(Number(freqSlider.value)), { skipSlider: true });
+  });
+  freqNumber.addEventListener('input', function () {
+    var v = Number(freqNumber.value);
+    if (!isNaN(v) && v > 0) setFreq(v, { skipNumber: true });
+  });
+
+  ampSlider.addEventListener('input', function () {
+    setAmp(Number(ampSlider.value), { skipSlider: true });
+  });
+  ampNumber.addEventListener('input', function () {
+    var v = Number(ampNumber.value);
+    if (!isNaN(v)) setAmp(v, { skipNumber: true });
+  });
+
+  document.querySelectorAll('.chip').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      setFreq(Number(btn.getAttribute('data-freq')));
+    });
+  });
+
+  function ensureAudio() {
+    if (!audioCtx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AC();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function startTone() {
+    ensureAudio();
+    osc = audioCtx.createOscillator();
+    gainNode = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    var vol = Number(volSlider.value) / 100 * 0.4;
+    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(vol, audioCtx.currentTime + 0.03);
+    osc.connect(gainNode).connect(audioCtx.destination);
+    osc.start();
+    playing = true;
+    playBtn.setAttribute('aria-pressed', 'true');
+    playLabel.textContent = t('stop');
+    playIcon.innerHTML = '<rect x="6" y="5" width="4" height="14"></rect><rect x="14" y="5" width="4" height="14"></rect>';
+  }
+
+  function stopTone() {
+    if (osc && audioCtx) {
+      var now = audioCtx.currentTime;
+      gainNode.gain.cancelScheduledValues(now);
+      gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+      gainNode.gain.linearRampToValueAtTime(0, now + 0.03);
+      osc.stop(now + 0.05);
+    }
+    playing = false;
+    playBtn.setAttribute('aria-pressed', 'false');
+    playLabel.textContent = t('play');
+    playIcon.innerHTML = '<path d="M8 5v14l11-7z"></path>';
+  }
+
+  playBtn.addEventListener('click', function () {
+    if (playing) stopTone(); else startTone();
+  });
+
+  volSlider.addEventListener('input', function () {
+    if (playing && gainNode && audioCtx) {
+      var vol = Number(volSlider.value) / 100 * 0.4;
+      gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
+    }
+  });
+
+  animBtn.addEventListener('click', function () {
+    animPlaying = !animPlaying;
+    lastFrameMs = null; // avoid a large dt jump on resume
+    animBtn.setAttribute('aria-pressed', String(animPlaying));
+    animLabel.textContent = animPlaying ? t('animStop') : t('animPlay');
+    animIcon.innerHTML = animPlaying
+      ? '<rect x="6" y="5" width="4" height="14"></rect><rect x="14" y="5" width="4" height="14"></rect>'
+      : '<path d="M8 5v14l11-7z"></path>';
+  });
+
+  // --- Spatial waveform canvas: fixed 1 m window, x-axis = distance, wave
+  // travels at a uniformly slowed-down but frequency-independent speed, so
+  // only the wavelength (crest spacing) changes with frequency — not the
+  // apparent propagation speed. ---
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+  function resizeCanvas() {
+    [canvas, particleCanvas].forEach(function (c) {
+      var rect = c.getBoundingClientRect();
+      var h = rect.height || 200;
+      c.width = Math.round(rect.width * dpr);
+      c.height = Math.round(h * dpr);
+    });
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  function updateWindowReadout() {
+    windowValue.textContent = windowM.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' m';
+  }
+
+  // Alt+wheel zoom only — no panning, so a plain wheel still scrolls the page.
+  // Wired to both canvases (particle strip + wave) so zooming works from either.
+  function onWheelZoom(e) {
+    if (!e.altKey || e.shiftKey || e.ctrlKey) return;
+    e.preventDefault();
+    var factor = e.deltaY < 0 ? 0.88 : 1 / 0.88;
+    windowM = Math.min(WINDOW_MAX, Math.max(WINDOW_MIN, windowM * factor));
+    updateWindowReadout();
+  }
+  canvas.addEventListener('wheel', onWheelZoom, { passive: false });
+  particleCanvas.addEventListener('wheel', onWheelZoom, { passive: false });
+
+  // --- Particle view: s(x,t) = sin(phase) is the longitudinal particle
+  // displacement along x; p(x,t) = -cos(phase) is the pressure/density
+  // deviation (90° phase-shifted from displacement, since p ∝ -ds/dx).
+  // Compression (p max) always sits at a zero-crossing of the displacement
+  // (which is exactly what the wave canvas below draws), not at a
+  // displacement extreme. ---
+  function phaseAt(xM, elapsedSec) {
+    var vEff = SPEED_OF_SOUND * ANIM_SLOWDOWN;
+    var lambdaM = SPEED_OF_SOUND / freq;
+    return 2 * Math.PI * (xM - vEff * elapsedSec) / lambdaM;
+  }
+  function pressureAt(xM, elapsedSec) { return -Math.cos(phaseAt(xM, elapsedSec)); }
+  function displacementAt(xM, elapsedSec) { return Math.sin(phaseAt(xM, elapsedSec)); }
+  function mod(a, n) { return ((a % n) + n) % n; }
+
+  function compressColor(p, mixColor, baseColor) {
+    // p in [-1, 1]; positive = compression (toward accent), negative = rarefaction (toward paper)
+    var frac = Math.max(0, Math.min(1, (p + 1) / 2));
+    return 'color-mix(in srgb, ' + mixColor + ' ' + Math.round(frac * 100) + '%, ' + baseColor + ')';
+  }
+
+  // Fixed rest layout for particles: staggered rows, generated once with a
+  // seeded PRNG so the arrangement is stable across frames/resizes/zoom.
+  var restParticles = (function () {
+    var seed = 42;
+    function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return (seed / 0x7fffffff); }
+    var rows = [0.18, 0.38, 0.6, 0.82];
+    var perRow = Math.ceil(PARTICLE_COUNT / rows.length);
+    var list = [];
+    rows.forEach(function (rowY, rowIdx) {
+      var offset = (rowIdx % 2) * (0.5 / perRow);
+      for (var i = 0; i < perRow; i++) {
+        var xr = (i + 0.5) / perRow + offset + (rnd() - 0.5) * (0.12 / perRow);
+        list.push({ xr: Math.max(0.002, Math.min(0.998, xr)), yr: Math.max(0.04, Math.min(0.96, rowY + (rnd() - 0.5) * 0.06)) });
+      }
+    });
+    return list;
+  })();
+
+  // Pick one particle near the window center to highlight, so its back-and-
+  // forth motion (and thus the longitudinal oscillation of a single air
+  // molecule) can be followed over time.
+  var trackedParticle = restParticles.reduce(function (best, pt) {
+    return Math.abs(pt.xr - 0.5) < Math.abs(best.xr - 0.5) ? pt : best;
+  }, restParticles[0]);
+
+  function drawParticles(elapsedSec) {
+    var w = particleCanvas.width, h = particleCanvas.height;
+    if (w === 0 || h === 0) return;
+    pctx.clearRect(0, 0, w, h);
+    pctx.fillStyle = getVar('--scope-bg');
+    pctx.fillRect(0, 0, w, h);
+
+    var leftM = 8 * dpr, rightM = 8 * dpr, topM = 22 * dpr, bottomM = 6 * dpr;
+    var plotW = w - leftM - rightM;
+    var plotH = h - topM - bottomM;
+
+    // compression/rarefaction background band, sampled in coarse columns
+    var compress = getVar('--compress'), rarefy = getVar('--rarefy');
+    var bandSteps = 90;
+    for (var i = 0; i < bandSteps; i++) {
+      var xr0 = i / bandSteps, xr1 = (i + 1) / bandSteps;
+      var xM = ((xr0 + xr1) / 2) * windowM;
+      var p = pressureAt(xM, elapsedSec);
+      pctx.fillStyle = compressColor(p, compress, rarefy);
+      pctx.globalAlpha = 0.78;
+      pctx.fillRect(leftM + xr0 * plotW, topM, (xr1 - xr0) * plotW + 1, plotH);
+    }
+    pctx.globalAlpha = 1;
+
+    // particles: displaced only along x (longitudinal) — pushed well past
+    // neighbour spacing at high amplitude so compression bands read as a
+    // hard pile-up, not just a gentle bunching
+    var maxDispPix = (plotW / (PARTICLE_COUNT / 4)) * 1.35 * ampFrac;
+    pctx.fillStyle = getVar('--particle');
+    var r = Math.max(2.6, 3.2 * dpr);
+    restParticles.forEach(function (pt) {
+      if (pt === trackedParticle) return; // drawn separately, on top, highlighted
+      var xM = pt.xr * windowM;
+      var s = displacementAt(xM, elapsedSec);
+      var x = leftM + pt.xr * plotW + s * maxDispPix;
+      var y = topM + pt.yr * plotH;
+      pctx.beginPath();
+      pctx.arc(x, y, r, 0, Math.PI * 2);
+      pctx.fill();
+    });
+
+    // the tracked particle: same physics, drawn larger and in a distinct
+    // color with a light halo so its back-and-forth path stays easy to follow
+    (function () {
+      var xM = trackedParticle.xr * windowM;
+      var s = displacementAt(xM, elapsedSec);
+      var x = leftM + trackedParticle.xr * plotW + s * maxDispPix;
+      var y = topM + trackedParticle.yr * plotH;
+      var trackColor = getVar('--track');
+      pctx.save();
+      pctx.fillStyle = trackColor;
+      pctx.globalAlpha = 0.22;
+      pctx.beginPath();
+      pctx.arc(x, y, r * 2.4, 0, Math.PI * 2);
+      pctx.fill();
+      pctx.globalAlpha = 1;
+      pctx.fillStyle = trackColor;
+      pctx.strokeStyle = getVar('--scope-bg');
+      pctx.lineWidth = Math.max(1, 1 * dpr);
+      pctx.beginPath();
+      pctx.arc(x, y, r * 1.5, 0, Math.PI * 2);
+      pctx.fill();
+      pctx.stroke();
+      pctx.restore();
+    })();
+
+    // when paused: mark the pressure maximum (compression) and minimum
+    // (rarefaction) within the visible window — same theta convention as the
+    // pressure curve below: p(x,t) = -cos(theta); p=+1 at theta=pi (x = vt +
+    // lambda/2), p=-1 at theta=0 (x = vt).
+    if (!animPlaying) {
+      var vEffP = SPEED_OF_SOUND * ANIM_SLOWDOWN;
+      var lambdaP = SPEED_OF_SOUND / freq;
+      var vtP = vEffP * elapsedSec;
+      var warnColor = getVar('--warn');
+      [
+        { xM: mod(vtP + lambdaP / 2, lambdaP), label: t('druckMax') },
+        { xM: mod(vtP, lambdaP), label: t('druckMin') }
+      ].forEach(function (entry) {
+        if (entry.xM > windowM + 1e-9) return;
+        var xPix = leftM + (entry.xM / windowM) * plotW;
+        pctx.save();
+        pctx.fillStyle = warnColor;
+        pctx.strokeStyle = warnColor;
+        // downward-pointing triangle marker just above the band
+        pctx.beginPath();
+        pctx.moveTo(xPix, topM - 2 * dpr);
+        pctx.lineTo(xPix - 5 * dpr, topM - 10 * dpr);
+        pctx.lineTo(xPix + 5 * dpr, topM - 10 * dpr);
+        pctx.closePath();
+        pctx.fill();
+        // dashed guide line down through the band
+        pctx.lineWidth = Math.max(1, 1 * dpr);
+        pctx.setLineDash([2 * dpr, 2 * dpr]);
+        pctx.beginPath(); pctx.moveTo(xPix, topM - 2 * dpr); pctx.lineTo(xPix, topM + plotH); pctx.stroke();
+        pctx.setLineDash([]);
+        // label above the triangle
+        pctx.font = '600 ' + (10.5 * dpr) + 'px "IBM Plex Mono", monospace';
+        pctx.textAlign = 'center';
+        pctx.textBaseline = 'bottom';
+        var tw = pctx.measureText(entry.label).width;
+        pctx.fillStyle = getVar('--scope-bg');
+        pctx.fillRect(xPix - tw / 2 - 3 * dpr, topM - 21 * dpr, tw + 6 * dpr, 12 * dpr);
+        pctx.fillStyle = warnColor;
+        pctx.fillText(entry.label, xPix, topM - 10 * dpr);
+        pctx.restore();
+      });
+    }
+  }
+
+  // "Nice" gridline step (1/2/5 × 10^n) so labels stay legible at any zoom level.
+  function niceStep(roughStep) {
+    var pow10 = Math.pow(10, Math.floor(Math.log10(roughStep)));
+    var frac = roughStep / pow10;
+    var niceFrac = frac < 1.5 ? 1 : frac < 3.5 ? 2 : frac < 7.5 ? 5 : 10;
+    return niceFrac * pow10;
+  }
+
+  function fmtDistance(m) {
+    if (Math.abs(m) < 1) {
+      return (Math.round(m * 1000) / 10).toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' cm';
+    }
+    return m.toLocaleString('de-DE', { maximumFractionDigits: 2 }) + ' m';
+  }
+
+  // Labeled dimension arrow (textbook-style, arrowheads on both ends) between
+  // two points, with its numeric-value caption centered above/beside it.
+  function drawDimensionArrow(x1, y1, x2, y2, label, opts) {
+    opts = opts || {};
+    var headLen = 6 * dpr;
+    var dx = x2 - x1, dy = y2 - y1;
+    var len = Math.hypot(dx, dy) || 1;
+    var ux = dx / len, uy = dy / len;
+    ctx.save();
+    ctx.strokeStyle = opts.color;
+    ctx.fillStyle = opts.color;
+    ctx.lineWidth = Math.max(1.2, 1.2 * dpr);
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    [[x1, y1, ux, uy], [x2, y2, -ux, -uy]].forEach(function (h) {
+      var hx = h[0], hy = h[1], hux = h[2], huy = h[3];
+      var perpx = -huy, perpy = hux;
+      ctx.beginPath();
+      ctx.moveTo(hx, hy);
+      ctx.lineTo(hx - hux * headLen + perpx * headLen * 0.45, hy - huy * headLen + perpy * headLen * 0.45);
+      ctx.lineTo(hx - hux * headLen - perpx * headLen * 0.45, hy - huy * headLen - perpy * headLen * 0.45);
+      ctx.closePath();
+      ctx.fill();
+    });
+    if (label) {
+      var midx = (x1 + x2) / 2, midy = (y1 + y2) / 2;
+      ctx.font = '600 ' + (11 * dpr) + 'px "IBM Plex Mono", monospace';
+      var tw = ctx.measureText(label).width;
+      var padX = 4 * dpr, padY = 2.5 * dpr;
+      var lx = midx + (opts.labelDx || 0), ly = midy + (opts.labelDy || 0);
+      ctx.fillStyle = getVar('--scope-bg');
+      ctx.fillRect(lx - tw / 2 - padX, ly - 11 * dpr - padY, tw + padX * 2, 11 * dpr + padY * 2);
+      ctx.fillStyle = opts.color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(label, lx, ly - 11 * dpr);
+    }
+    ctx.restore();
+  }
+
+  function drawScope(now) {
+    requestAnimationFrame(drawScope);
+    var w = canvas.width, h = canvas.height;
+    if (w === 0 || h === 0) return;
+
+    if (lastFrameMs === null) lastFrameMs = now;
+    var dtSec = (now - lastFrameMs) / 1000;
+    lastFrameMs = now;
+    if (animPlaying) animAccumSec += dtSec;
+
+    drawParticles(animAccumSec);
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = getVar('--scope-bg');
+    ctx.fillRect(0, 0, w, h);
+
+    var gridColor = getVar('--scope-grid');
+    var midColor = getVar('--scope-grid-mid');
+    var textColor = getVar('--scope-text');
+    var traceColor = getVar('--scope-trace');
+    var warnColor = getVar('--warn');
+
+    var leftM = 8 * dpr, rightM = 8 * dpr, topM = 10 * dpr, bottomM = 22 * dpr;
+    var plotW = w - leftM - rightM;
+    var plotH = h - topM - bottomM;
+    var midY = topM + plotH / 2;
+
+    // vertical gridlines: distance, dynamic "nice" step so labels stay legible when zoomed
+    var xStepM = niceStep(windowM / 8);
+    var useCm = xStepM < 1;
+    ctx.strokeStyle = gridColor;
+    ctx.lineWidth = 1;
+    ctx.font = (10.5 * dpr) + 'px "IBM Plex Mono", monospace';
+    ctx.fillStyle = textColor;
+    for (var xv = 0; xv <= windowM + 1e-9; xv += xStepM) {
+      var xx = leftM + (xv / windowM) * plotW;
+      ctx.beginPath(); ctx.moveTo(Math.round(xx) + 0.5, topM); ctx.lineTo(Math.round(xx) + 0.5, topM + plotH); ctx.stroke();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      var label = useCm ? (Math.round(xv * 100) + ' cm') : (xv.toLocaleString('de-DE', { maximumFractionDigits: 2 }) + ' m');
+      ctx.fillText(label, xx, topM + plotH + 5 * dpr);
+    }
+
+    // horizontal gridlines: amplitude, at 0% / ±50% / ±100% of the plot height
+    ctx.strokeStyle = midColor;
+    ctx.beginPath(); ctx.moveTo(leftM, Math.round(midY) + 0.5); ctx.lineTo(leftM + plotW, Math.round(midY) + 0.5); ctx.stroke();
+    ctx.strokeStyle = gridColor;
+    [-0.5, 0.5].forEach(function (frac) {
+      var yy = midY - frac * (plotH / 2);
+      ctx.beginPath(); ctx.moveTo(leftM, Math.round(yy) + 0.5); ctx.lineTo(leftM + plotW, Math.round(yy) + 0.5); ctx.stroke();
+    });
+
+    // the traveling wave itself — drawn as Schalldruck p(x,t) = -cos(phase),
+    // matching what a DAW's waveform view shows (a pressure/voltage-over-time
+    // signal from a pressure-sensitive microphone), and matching the same
+    // convention already used for the compression band above.
+    var vEff = SPEED_OF_SOUND * ANIM_SLOWDOWN; // m/s, same for every frequency
+    var lambdaM = SPEED_OF_SOUND / freq;
+    var amp = (plotH / 2) * 0.92 * ampFrac;
+
+    function yAt(xM) {
+      return midY - pressureAt(xM, animAccumSec) * amp;
+    }
+
+    ctx.beginPath();
+    ctx.strokeStyle = traceColor;
+    ctx.lineWidth = Math.max(2, 2 * dpr);
+    ctx.lineJoin = 'round';
+
+    var steps = Math.max(2, Math.round(plotW));
+    for (var i = 0; i <= steps; i++) {
+      var xr = i / steps;
+      var xM = xr * windowM;
+      var y = yAt(xM);
+      var x = leftM + xr * plotW;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // when paused: dimension arrows for wavelength+period and amplitude
+    if (!animPlaying) {
+      var vt = vEff * animAccumSec;
+      // y = midY - amp*(-cos(theta)); a rising crossing of the wave (below ->
+      // above midY as x increases) happens where theta = pi/2 (mod 2pi): x = vt + lambda/4
+      var xStart = mod(vt + lambdaM / 4, lambdaM);
+      if (xStart + lambdaM <= windowM + 1e-9) {
+        var x1 = leftM + (xStart / windowM) * plotW;
+        var x2 = leftM + ((xStart + lambdaM) / windowM) * plotW;
+        var yArrow = topM + 11 * dpr;
+        var periodMs = 1000 / freq;
+        var lambdaLabel = fmtDistance(lambdaM) + '  (T ' + fmtMs(periodMs) + ' ms)';
+        drawDimensionArrow(x1, yArrow, x2, yArrow, lambdaLabel, { color: warnColor });
+        // drop lines from the wave down/up to the arrow for clarity
+        ctx.save();
+        ctx.strokeStyle = warnColor;
+        ctx.setLineDash([2 * dpr, 2 * dpr]);
+        ctx.lineWidth = 1;
+        [x1, x2].forEach(function (xx) {
+          ctx.beginPath(); ctx.moveTo(xx, yArrow); ctx.lineTo(xx, midY); ctx.stroke();
+        });
+        ctx.restore();
+      }
+
+      // amplitude arrow at the first crest within view: y minimal (peak above
+      // midline) where -cos(theta) = 1, i.e. theta = pi (mod 2pi): x = vt + lambda/2
+      var xCrest = mod(vt + lambdaM / 2, lambdaM);
+      if (xCrest <= windowM + 1e-9) {
+        var xcPix = leftM + (xCrest / windowM) * plotW;
+        var ampLabel = Math.round(ampFrac * 100) + ' %';
+        drawDimensionArrow(xcPix, midY, xcPix, midY - amp, ampLabel, { color: warnColor, labelDx: 16 * dpr });
+      }
+    }
+
+    // axis caption
+    ctx.fillStyle = textColor;
+    ctx.font = '600 ' + (11 * dpr) + 'px "IBM Plex Sans", sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(t('xAxis'), leftM + plotW, topM + plotH + 19 * dpr);
+  }
+
+  function getVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  requestAnimationFrame(drawScope);
+
+  updateWindowReadout();
+
+  applyStaticI18n();
+  setFreq(440);
+  setAmp(70);
+})();
+</script>
