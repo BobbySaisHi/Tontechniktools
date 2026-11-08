@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaurale Differenzen (ITD/ILD)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .kopfzeile {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+        .kopfzeile .ausgleich {
+            width: 80px;
+            flex: none;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            flex: 1;
+        }
+        .sprache {
+            display: flex;
+            gap: 5px;
+            width: 80px;
+            flex: none;
+            justify-content: flex-end;
+        }
+        .sprache button {
+            font-family: monospace;
+            background: #eee;
+            color: #555;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px 8px;
+            cursor: pointer;
+        }
+        .sprache button[aria-pressed="true"] {
+            background: #0066cc;
+            border-color: #0066cc;
+            color: white;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .control-kopf {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        label {
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="range"] {
+            width: 100%;
+            margin: 0;
+            cursor: pointer;
+            accent-color: #0066cc;
+        }
+        .skala {
+            position: relative;
+            height: 1.2em;
+            font-size: 0.8em;
+            color: #666;
+        }
+        .skala span {
+            position: absolute;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+        .skala span:first-child { transform: none; }
+        .skala span:last-child { transform: translateX(-100%); }
+        .value-display {
+            font-family: monospace;
+            background: #eee;
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: inline-block;
+            min-width: 60px;
+            text-align: right;
+            white-space: nowrap;
+        }
+        .arbeitsflaeche {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 320px;
+            gap: 20px;
+            align-items: start;
+        }
+        svg {
+            display: block;
+            width: 100%;
+            height: auto;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            touch-action: none;
+            user-select: none;
+        }
+        .werte {
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        .werte h2 {
+            margin: 0 0 10px;
+            font-size: 1em;
+            color: #333;
+        }
+        .werte table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .werte th {
+            text-align: left;
+            font-weight: bold;
+            font-size: 0.9em;
+            color: #555;
+            padding: 4px 8px 4px 0;
+        }
+        .werte td {
+            text-align: right;
+            padding: 3px 0;
+        }
+        .werte .abschnitt th,
+        .werte .abschnitt td {
+            padding-top: 12px;
+        }
+        .ohr-marke {
+            display: inline-block;
+            width: 14px;
+            height: 3px;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        .ohr-marke.links { background: #555; }
+        .ohr-marke.rechts { background: #0066cc; }
+        .info {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .info p { margin: 0.6em 0; }
+        @media (max-width: 820px) {
+            body { margin: 10px; }
+            .container { padding: 15px; }
+            .arbeitsflaeche { grid-template-columns: minmax(0, 1fr); }
+            .kopfzeile .ausgleich { display: none; }
+            h1 { text-align: left; font-size: 1.4em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="kopfzeile">
+            <div class="ausgleich"></div>
+            <h1 data-text="titel"></h1>
+            <div class="sprache">
+                <button type="button" data-sprache="de">DE</button>
+                <button type="button" data-sprache="en">EN</button>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <div class="control-kopf">
+                    <label for="frequenz" data-text="frequenz"></label>
+                    <span class="value-display" id="frequenz-wert"></span>
+                </div>
+                <input type="range" id="frequenz" min="0" max="1000" step="1">
+                <div class="skala" id="frequenz-skala"></div>
+            </div>
+        </div>
+
+        <div class="arbeitsflaeche">
+            <svg id="szene" viewBox="-320 -320 640 640" role="img">
+                <defs>
+                    <radialGradient id="schatten-verlauf" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="300">
+                        <stop offset="0" stop-color="#333" stop-opacity="1"/>
+                        <stop offset="0.45" stop-color="#333" stop-opacity="0.75"/>
+                        <stop offset="1" stop-color="#333" stop-opacity="0"/>
+                    </radialGradient>
+                </defs>
+                <g id="raster"></g>
+                <path id="schatten" fill="url(#schatten-verlauf)"/>
+                <g id="kopf"></g>
+                <path id="weg-links" fill="none" stroke="#555" stroke-width="2"/>
+                <path id="weg-rechts" fill="none" stroke="#0066cc" stroke-width="2"/>
+                <g id="quelle" style="cursor: grab">
+                    <circle id="quelle-griff" r="22" fill="transparent"/>
+                    <circle id="quelle-punkt" r="9" fill="#0066cc" stroke="white" stroke-width="2"/>
+                </g>
+            </svg>
+
+            <div class="werte">
+                <h2 data-text="werteTitel"></h2>
+                <table>
+                    <tr><th data-text="azimut"></th><td><span class="value-display" id="w-azimut"></span></td></tr>
+                    <tr><th data-text="entfernung"></th><td><span class="value-display" id="w-entfernung"></span></td></tr>
+                    <tr class="abschnitt"><th><span class="ohr-marke links"></span><span data-text="wegLinks"></span></th><td><span class="value-display" id="w-weg-links"></span></td></tr>
+                    <tr><th><span class="ohr-marke rechts"></span><span data-text="wegRechts"></span></th><td><span class="value-display" id="w-weg-rechts"></span></td></tr>
+                    <tr><th data-text="wegdifferenz"></th><td><span class="value-display" id="w-wegdifferenz"></span></td></tr>
+                    <tr class="abschnitt"><th data-text="itd"></th><td><span class="value-display" id="w-itd"></span></td></tr>
+                    <tr class="abschnitt"><th data-text="phaseAbsolut"></th><td><span class="value-display" id="w-phase"></span></td></tr>
+                    <tr><th data-text="phaseGefaltet"></th><td><span class="value-display" id="w-phase-gefaltet"></span></td></tr>
+                    <tr class="abschnitt"><th data-text="ild"></th><td><span class="value-display" id="w-ild"></span></td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="info">
+            <p data-text="bedienung"></p>
+            <p data-text="hinweisKugel"></p>
+            <p data-text="hinweisBrightSpot"></p>
+            <p data-text="hinweisMassstab"></p>
+        </div>
+    </div>
+
+    <script id="physik">
+        // Physik: Weglängen nach Kugelkopf-Geometrie, ILD nach Duda & Martens (1998).
+        // Winkel in Radiant, Längen in Metern, Frequenz in Hertz.
+        const KOPFRADIUS = 0.0875;
+        const SCHALLGESCHWINDIGKEIT = 343;
+
+        // Weglänge von der Quelle zum Ohr; psi = Winkel Quellrichtung–Ohrrichtung.
+        function weglaenge(r, psi, a = KOPFRADIUS) {
+            const alpha = Math.acos(a / r);
+            if (psi <= alpha) {
+                return Math.sqrt(r * r + a * a - 2 * a * r * Math.cos(psi));
+            }
+            return Math.sqrt(r * r - a * a) + a * (psi - alpha);
+        }
+
+        // Betrag von H(rho, mu, theta). Der Phasenfaktor e^(−iμρ) hat Betrag 1 und entfällt.
+        // Spektrale Reihe mit Vorwärtsrekursion für h_m und Dreiterm-Rekursion für P_m.
+        function kugelBetrag(r, f, theta, a = KOPFRADIUS, c = SCHALLGESCHWINDIGKEIT) {
+            const rho = r / a;
+            const mu = 2 * Math.PI * f * a / c;
+            const x = mu * rho;
+            const cosTheta = Math.cos(theta);
+
+            // h_0 = −i·e^(ix)/x, h_1 = −e^(ix)·(x + i)/x²
+            const startHankel = (z) => {
+                const re = Math.cos(z), im = Math.sin(z);
+                return {
+                    h0: [im / z, -re / z],
+                    h1: [(-re * z + im) / (z * z), (-im * z - re) / (z * z)],
+                };
+            };
+            const quelle = startHankel(x);
+            const kopf = startHankel(mu);
+
+            let hxV = quelle.h0, hx = quelle.h1;   // h_(m−1)(x), h_m(x) ab m = 1
+            let hmV = kopf.h0, hm = kopf.h1;       // h_(m−1)(μ), h_m(μ)
+            let pV = 1, p = cosTheta;              // P_(m−1), P_m
+
+            // Term m = 0: h'_0 = −h_1
+            const ersterTerm = komplexQuotient(quelle.h0, [-kopf.h1[0], -kopf.h1[1]]);
+            let summeRe = ersterTerm[0];
+            let summeIm = ersterTerm[1];
+
+            let kleineTerme = 0;
+            for (let m = 1; m < 400; m++) {
+                // h'_m(μ) = h_(m−1)(μ) − (m+1)/μ · h_m(μ)
+                const k = (m + 1) / mu;
+                const ableitung = [hmV[0] - k * hm[0], hmV[1] - k * hm[1]];
+                const quotient = komplexQuotient(hx, ableitung);
+                const gewicht = 2 * m + 1;
+                const qRe = gewicht * quotient[0];
+                const qIm = gewicht * quotient[1];
+                if (!Number.isFinite(qRe) || !Number.isFinite(qIm)) break;
+
+                summeRe += qRe * p;
+                summeIm += qIm * p;
+
+                // Abbruch ohne P_m im Maß: P_m kann zufällig null sein (ungerade m bei θ = 90°).
+                const klein = Math.hypot(qRe, qIm) < 1e-10 * Math.hypot(summeRe, summeIm);
+                kleineTerme = (klein && m > mu) ? kleineTerme + 1 : 0;
+                if (kleineTerme >= 3) break;
+
+                const hxN = rekursionHankel(m, x, hxV, hx);
+                hxV = hx; hx = hxN;
+                const hmN = rekursionHankel(m, mu, hmV, hm);
+                hmV = hm; hm = hmN;
+                const pN = ((2 * m + 1) * cosTheta * p - m * pV) / (m + 1);
+                pV = p; p = pN;
+            }
+            return (rho / mu) * Math.hypot(summeRe, summeIm);
+        }
+
+        function komplexQuotient(z, n) {
+            const nenner = n[0] * n[0] + n[1] * n[1];
+            return [(z[0] * n[0] + z[1] * n[1]) / nenner, (z[1] * n[0] - z[0] * n[1]) / nenner];
+        }
+
+        // h_(m+1)(x) = (2m+1)/x · h_m(x) − h_(m−1)(x)
+        function rekursionHankel(m, x, hV, h) {
+            const k = (2 * m + 1) / x;
+            return [k * h[0] - hV[0], k * h[1] - hV[1]];
+        }
+
+        // Winkelabstand in Grad, Ergebnis signiert in (−180°, 180°].
+        function winkelDifferenz(grad) {
+            const w = ((grad + 180) % 360 + 360) % 360 - 180;
+            return w === -180 ? 180 : w;
+        }
+
+        function faltePhase(grad) {
+            return grad - 360 * Math.round(grad / 360);
+        }
+
+        // Azimut in Grad: 0° vorn, positiv nach rechts.
+        function berechne(azimut, r, f) {
+            const deltaL = winkelDifferenz(-90 - azimut);
+            const deltaR = winkelDifferenz(90 - azimut);
+            const psiL = Math.abs(deltaL) * Math.PI / 180;
+            const psiR = Math.abs(deltaR) * Math.PI / 180;
+            const wegL = weglaenge(r, psiL);
+            const wegR = weglaenge(r, psiR);
+            const psiNah = Math.min(psiL, psiR);
+            const psiFern = Math.max(psiL, psiR);
+            const itd = Math.abs(wegL - wegR) / SCHALLGESCHWINDIGKEIT;
+            const phase = 360 * f * itd;
+            const ild = 20 * Math.log10(kugelBetrag(r, f, psiNah) / kugelBetrag(r, f, psiFern));
+            return {
+                deltaL, deltaR, wegL, wegR, itd, phase,
+                phaseGefaltet: faltePhase(phase), ild,
+                wegDifferenz: Math.abs(wegL - wegR),
+                alpha: Math.acos(KOPFRADIUS / r),
+            };
+        }
+    </script>
+
+    <script>
+        // Alle sichtbaren Texte
+        const TEXTE = {
+            de: {
+                dokumentTitel: 'Interaurale Differenzen (ITD/ILD)',
+                titel: 'Interaurale Differenzen (ITD/ILD)',
+                frequenz: 'Frequenz',
+                werteTitel: 'Messwerte',
+                azimut: 'Azimut',
+                entfernung: 'Entfernung',
+                wegLinks: 'Distanz linkes Ohr',
+                wegRechts: 'Distanz rechtes Ohr',
+                wegdifferenz: 'Wegdifferenz',
+                itd: 'ITD',
+                phaseAbsolut: 'Phasendifferenz absolut',
+                phaseGefaltet: 'gefaltet auf ±180°',
+                ild: 'ILD',
+                ohrL: 'L',
+                ohrR: 'R',
+                szeneBeschreibung: 'Draufsicht auf den Kopf mit verschiebbarer Punktschallquelle',
+                bedienung: 'Zieh die Schallquelle mit der Maus um den Kopf.',
+                hinweisKugel: 'Das Kugelmodell unterschätzt reale ILDs oberhalb von ca. 4 kHz (keine Ohrmuschel, kein Torso).',
+                hinweisBrightSpot: 'Bei genau ±90° liegt das abgewandte Ohr am Gegenpol der Kugel. Die Beugungswellen beider Seiten treffen sich dort („Bright Spot“), die ILD ist deshalb kleiner als einige Grad daneben.',
+                hinweisMassstab: 'Die Entfernung ist nichtlinear dargestellt.',
+            },
+            en: {
+                dokumentTitel: 'Interaural Differences (ITD/ILD)',
+                titel: 'Interaural Differences (ITD/ILD)',
+                frequenz: 'Frequency',
+                werteTitel: 'Readings',
+                azimut: 'Azimuth',
+                entfernung: 'Distance',
+                wegLinks: 'Distance left ear',
+                wegRechts: 'Distance right ear',
+                wegdifferenz: 'Path difference',
+                itd: 'ITD',
+                phaseAbsolut: 'Phase difference, absolute',
+                phaseGefaltet: 'wrapped to ±180°',
+                ild: 'ILD',
+                ohrL: 'L',
+                ohrR: 'R',
+                szeneBeschreibung: 'Top view of the head with a draggable point source',
+                bedienung: 'Drag the source around the head with the mouse.',
+                hinweisKugel: 'The spherical model underestimates real ILDs above about 4 kHz (no pinna, no torso).',
+                hinweisBrightSpot: 'At exactly ±90° the far ear sits at the opposite pole of the sphere. The waves diffracted around both sides meet there (bright spot), so the ILD is smaller than a few degrees away.',
+                hinweisMassstab: 'Distance is drawn on a non-linear scale.',
+            },
+        };
+
+        const R_MIN = 0.15;
+        const R_MAX = 5;
+        const F_MIN = 100;
+        const F_MAX = 16000;
+        const LOCALE = { de: 'de-DE', en: 'en-GB' };
+
+        // asinh-Skala: nahe am Kopf annähernd linear, weiter außen logarithmisch.
+        const SKALA_A = 71;
+        const SKALA_B = 0.15;
+        const anzeigeRadius = (r) => SKALA_A * Math.asinh(r / SKALA_B);
+        const realerRadius = (radius) => SKALA_B * Math.sinh(radius / SKALA_A);
+        const KOPF_PX = anzeigeRadius(KOPFRADIUS);
+
+        const zustand = { azimut: 45, r: 1, f: 1000, sprache: 'de' };
+
+        const element = (id) => document.getElementById(id);
+        const SVG_NS = 'http://www.w3.org/2000/svg';
+
+        function svgElement(name, attribute, eltern) {
+            const el = document.createElementNS(SVG_NS, name);
+            for (const [schluessel, wert] of Object.entries(attribute)) el.setAttribute(schluessel, wert);
+            eltern.appendChild(el);
+            return el;
+        }
+
+        // Punkt im realen Raum (Meter, x nach rechts, y nach vorn) in Bildkoordinaten
+        function aufBild(x, y) {
+            const r = Math.hypot(x, y);
+            if (r === 0) return [0, 0];
+            const k = anzeigeRadius(r) / r;
+            return [x * k, -y * k];
+        }
+
+        const polar = (r, grad) => {
+            const w = grad * Math.PI / 180;
+            return [r * Math.sin(w), r * Math.cos(w)];
+        };
+
+        function pfadAus(punkte) {
+            return punkte.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join('');
+        }
+
+        // Stützpunkte, weil die Gerade durch die Radialskala leicht gekrümmt abgebildet wird
+        function strecke(p, q, n = 240) {
+            const punkte = [];
+            for (let i = 0; i <= n; i++) {
+                const t = i / n;
+                punkte.push(aufBild(p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t));
+            }
+            return punkte;
+        }
+
+        function wegPunkte(azimut, r, delta, alpha) {
+            const psi = Math.abs(delta);
+            const seite = delta >= 0 ? 1 : -1;
+            const alphaGrad = alpha * 180 / Math.PI;
+            const quelle = polar(r, azimut);
+            const ohr = polar(KOPFRADIUS, azimut + delta);
+            if (psi <= alphaGrad) return strecke(quelle, ohr);
+
+            const tangente = polar(KOPFRADIUS, azimut + seite * alphaGrad);
+            const punkte = strecke(quelle, tangente);
+            const schritte = Math.max(2, Math.ceil(psi - alphaGrad));
+            for (let i = 1; i <= schritte; i++) {
+                const w = azimut + seite * (alphaGrad + (psi - alphaGrad) * i / schritte);
+                punkte.push(aufBild(...polar(KOPFRADIUS, w)));
+            }
+            return punkte;
+        }
+
+        // Schattengrenze: Strahl von der Quelle über den Tangentenpunkt bis über den Bildrand hinaus
+        function schattenStrahl(azimut, r, seite, alphaGrad) {
+            const quelle = polar(r, azimut);
+            const tangente = polar(KOPFRADIUS, azimut + seite * alphaGrad);
+            const dx = tangente[0] - quelle[0];
+            const dy = tangente[1] - quelle[1];
+            const laenge = Math.hypot(dx, dy);
+            const ux = dx / laenge, uy = dy / laenge;
+            const punkte = [];
+            for (let i = 0; i <= 60; i++) {
+                const t = 0.02 * (Math.pow(1.13, i) - 1);
+                const x = tangente[0] + ux * t, y = tangente[1] + uy * t;
+                punkte.push(aufBild(x, y));
+                if (Math.hypot(x, y) > 8) break;
+            }
+            return punkte;
+        }
+
+        function zeichneSchatten(ergebnis) {
+            const alphaGrad = ergebnis.alpha * 180 / Math.PI;
+            const a = schattenStrahl(zustand.azimut, zustand.r, 1, alphaGrad);
+            const b = schattenStrahl(zustand.azimut, zustand.r, -1, alphaGrad).reverse();
+            const ende = a[a.length - 1], start = b[0];
+            const wA = Math.atan2(ende[1], ende[0]);
+            const wB = Math.atan2(start[1], start[0]);
+            const hinten = (zustand.azimut + 180) * Math.PI / 180;
+            const hintenBild = Math.atan2(Math.cos(hinten) * -1, Math.sin(hinten));
+            // Bogen läuft über die quellabgewandte Seite von Strahl zu Strahl
+            const normiere = (w) => Math.atan2(Math.sin(w), Math.cos(w));
+            const bogen = [];
+            const schritte = 24;
+            const radius = 420;
+            const teilA = normiere(hintenBild - wA);
+            const teilB = normiere(wB - hintenBild);
+            for (let i = 1; i < schritte; i++) {
+                const w = wA + (teilA + teilB) * i / schritte;
+                bogen.push([radius * Math.cos(w), radius * Math.sin(w)]);
+            }
+            const flaeche = element('schatten');
+            flaeche.setAttribute('d', pfadAus([...a, ...bogen, ...b]) + 'Z');
+            flaeche.setAttribute('opacity', (Math.min(Math.abs(ergebnis.ild) / 20, 1) * 0.5).toFixed(3));
+        }
+
+        function zeichneRaster() {
+            const raster = element('raster');
+            const linie = { stroke: '#ddd', 'stroke-width': 1 };
+            svgElement('line', { x1: 0, y1: -305, x2: 0, y2: 305, ...linie }, raster);
+            svgElement('line', { x1: -305, y1: 0, x2: 305, y2: 0, ...linie }, raster);
+            for (const r of [0.25, 0.5, 1, 2, 5]) {
+                const radius = anzeigeRadius(r);
+                svgElement('circle', { cx: 0, cy: 0, r: radius, fill: 'none', ...linie }, raster);
+                svgElement('text', {
+                    x: radius * Math.SQRT1_2 + 3, y: radius * Math.SQRT1_2 + 12,
+                    fill: '#666', 'font-size': 11, 'data-entfernung': r,
+                }, raster);
+            }
+            const winkel = [
+                { x: 5, y: -307, text: '0°', anker: 'start' },
+                { x: 314, y: -5, text: '+90°', anker: 'end' },
+                { x: -314, y: -5, text: '−90°', anker: 'start' },
+                { x: 5, y: 315, text: '±180°', anker: 'start' },
+            ];
+            for (const w of winkel) {
+                const text = svgElement('text', {
+                    x: w.x, y: w.y, 'text-anchor': w.anker, fill: '#666', 'font-size': 11,
+                }, raster);
+                text.textContent = w.text;
+            }
+        }
+
+        function zeichneKopf() {
+            const kopf = element('kopf');
+            const R = KOPF_PX;
+            const nase = `M${-R * 0.2} ${-R * 0.96}L0 ${-R * 1.22}L${R * 0.2} ${-R * 0.96}`;
+            svgElement('path', { d: nase, fill: '#f9f9f9', stroke: '#555', 'stroke-width': 2 }, kopf);
+            svgElement('circle', { cx: 0, cy: 0, r: R, fill: '#f9f9f9', stroke: '#555', 'stroke-width': 2 }, kopf);
+            svgElement('circle', { cx: -R, cy: 0, r: 5, fill: '#555' }, kopf);
+            svgElement('circle', { cx: R, cy: 0, r: 5, fill: '#0066cc' }, kopf);
+            const links = svgElement('text', {
+                x: -R + 11, y: 4, fill: '#555', 'font-size': 12, 'font-weight': 'bold',
+            }, kopf);
+            links.dataset.text = 'ohrL';
+            const rechts = svgElement('text', {
+                x: R - 11, y: 4, fill: '#0066cc', 'font-size': 12, 'font-weight': 'bold', 'text-anchor': 'end',
+            }, kopf);
+            rechts.dataset.text = 'ohrR';
+        }
+
+        function zahl(wert, stellen) {
+            return wert.toLocaleString(LOCALE[zustand.sprache], {
+                minimumFractionDigits: stellen, maximumFractionDigits: stellen,
+            });
+        }
+
+        function vorzeichen(wert, stellen) {
+            const text = zahl(Math.abs(wert), stellen);
+            const gerundetNull = Number(Math.abs(wert).toFixed(stellen)) === 0;
+            if (gerundetNull) return text;
+            return (wert < 0 ? '−' : '+') + text;
+        }
+
+        function frequenzText(f) {
+            if (f >= 1000) return `${zahl(f / 1000, f >= 10000 ? 1 : 2)} kHz`;
+            return `${zahl(f, 0)} Hz`;
+        }
+
+        const reglerZuFrequenz = (wert) => F_MIN * Math.pow(F_MAX / F_MIN, wert / 1000);
+        const frequenzZuRegler = (f) => 1000 * Math.log(f / F_MIN) / Math.log(F_MAX / F_MIN);
+
+        function aktualisiere() {
+            const { azimut, r, f } = zustand;
+            const e = berechne(azimut, r, f);
+            const [qx, qy] = aufBild(...polar(r, azimut));
+            element('quelle').setAttribute('transform', `translate(${qx.toFixed(1)} ${qy.toFixed(1)})`);
+            element('weg-links').setAttribute('d', pfadAus(wegPunkte(azimut, r, e.deltaL, e.alpha)));
+            element('weg-rechts').setAttribute('d', pfadAus(wegPunkte(azimut, r, e.deltaR, e.alpha)));
+            zeichneSchatten(e);
+
+            element('frequenz-wert').textContent = frequenzText(f);
+            element('w-azimut').textContent = `${vorzeichen(azimut, 1)}°`;
+            element('w-entfernung').textContent = `${zahl(r, 2)} m`;
+            element('w-weg-links').textContent = `${zahl(e.wegL, 3)} m`;
+            element('w-weg-rechts').textContent = `${zahl(e.wegR, 3)} m`;
+            element('w-wegdifferenz').textContent = `${zahl(e.wegDifferenz * 100, 1)} cm`;
+            element('w-itd').textContent = `${zahl(e.itd * 1e3, 3)} ms`;
+            element('w-phase').textContent = `${zahl(e.phase, 0)}°`;
+            element('w-phase-gefaltet').textContent = `${vorzeichen(e.phaseGefaltet, 0)}°`;
+            element('w-ild').textContent = `${vorzeichen(e.ild, 1)} dB`;
+        }
+
+        function setzeSprache(sprache) {
+            zustand.sprache = sprache;
+            const t = TEXTE[sprache];
+            document.documentElement.lang = sprache;
+            document.title = t.dokumentTitel;
+            document.querySelectorAll('[data-text]').forEach((el) => { el.textContent = t[el.dataset.text]; });
+            element('szene').setAttribute('aria-label', t.szeneBeschreibung);
+            document.querySelectorAll('[data-sprache]').forEach((b) => {
+                b.setAttribute('aria-pressed', String(b.dataset.sprache === sprache));
+            });
+            document.querySelectorAll('[data-entfernung]').forEach((el) => {
+                const r = Number(el.dataset.entfernung);
+                el.textContent = `${r.toLocaleString(LOCALE[sprache])} m`;
+            });
+            const skala = element('frequenz-skala');
+            skala.innerHTML = '';
+            for (const f of [100, 1000, 4000, 16000]) {
+                const span = document.createElement('span');
+                span.style.left = `${frequenzZuRegler(f) / 10}%`;
+                span.textContent = f >= 1000 ? `${f / 1000} kHz` : `${f} Hz`;
+                skala.appendChild(span);
+            }
+            aktualisiere();
+        }
+
+        function bindeBedienung() {
+            const szene = element('szene');
+            const quelle = element('quelle');
+
+            const zuSzene = (ereignis) => {
+                return new DOMPoint(ereignis.clientX, ereignis.clientY)
+                    .matrixTransform(szene.getScreenCTM().inverse());
+            };
+
+            quelle.addEventListener('pointerdown', (ereignis) => {
+                quelle.setPointerCapture(ereignis.pointerId);
+                quelle.style.cursor = 'grabbing';
+                ereignis.preventDefault();
+            });
+            quelle.addEventListener('pointermove', (ereignis) => {
+                if (!quelle.hasPointerCapture(ereignis.pointerId)) return;
+                const { x, y } = zuSzene(ereignis);
+                const r = realerRadius(Math.hypot(x, y));
+                zustand.r = Math.min(R_MAX, Math.max(R_MIN, r));
+                zustand.azimut = Math.atan2(x, -y) * 180 / Math.PI;
+                aktualisiere();
+            });
+            const beende = () => { quelle.style.cursor = 'grab'; };
+            quelle.addEventListener('pointerup', beende);
+            quelle.addEventListener('pointercancel', beende);
+
+            element('frequenz').addEventListener('input', (ereignis) => {
+                zustand.f = reglerZuFrequenz(Number(ereignis.target.value));
+                aktualisiere();
+            });
+
+            document.querySelectorAll('[data-sprache]').forEach((knopf) => {
+                knopf.addEventListener('click', () => setzeSprache(knopf.dataset.sprache));
+            });
+        }
+
+        zeichneRaster();
+        zeichneKopf();
+        element('frequenz').value = frequenzZuRegler(zustand.f);
+        bindeBedienung();
+        setzeSprache('de');
+    </script>
+</body>
+</html>
