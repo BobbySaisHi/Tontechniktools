@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mikrofon im Schallfeld – einfach</title>
+    <style>
+        /* Visual style adopted from reference/index.html (colors, fonts, boxes) */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        header {
+            position: relative;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin: 0 0 4px 0;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            margin: 0 0 20px 0;
+        }
+        .lang-switch {
+            position: absolute;
+            top: 0;
+            right: 0;
+            display: flex;
+            gap: 4px;
+        }
+        .seg {
+            display: inline-flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        .lang-switch .fs-btn { margin-right: 8px; }
+        /* full-screen mode: use the whole screen width */
+        html:fullscreen { overflow-y: auto; background: #f5f5f5; }
+        html:fullscreen body { margin: 10px; }
+        html:fullscreen .container { max-width: none; }
+        html:-webkit-full-screen { overflow-y: auto; background: #f5f5f5; }
+        html:-webkit-full-screen body { margin: 10px; }
+        html:-webkit-full-screen .container { max-width: none; }
+        .lang-switch button, .seg button {
+            font-family: Arial, sans-serif;
+            font-size: 0.85em;
+            padding: 4px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #f9f9f9;
+            color: #555;
+            cursor: pointer;
+        }
+        .lang-switch button.active, .seg button.active {
+            background: #0066cc;
+            border-color: #0066cc;
+            color: white;
+            font-weight: bold;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 15px 25px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        .tabs {
+            display: flex;
+            gap: 4px;
+            border-bottom: 2px solid #0066cc;
+            margin-bottom: 15px;
+        }
+        .tabs button {
+            font-family: Arial, sans-serif;
+            font-size: 0.95em;
+            font-weight: bold;
+            padding: 8px 18px;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            background: #f9f9f9;
+            color: #555;
+            cursor: pointer;
+        }
+        .tabs button.active {
+            background: #0066cc;
+            border-color: #0066cc;
+            color: white;
+        }
+        .control-group.wide { grid-column: 1 / -1; }
+        .zonebar {
+            position: relative;
+            height: 20px;
+            margin: 2px 8px 22px 8px;   /* inset ≈ half the slider thumb, room for marks */
+            border-radius: 3px;
+            background: #f0f0f0;
+        }
+        .zone {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            overflow: hidden;
+            font-size: 0.75em;
+            line-height: 20px;
+            color: #333;
+            text-align: center;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        .zone span { padding: 0 4px; }
+        .z-near    { background: rgba(0, 102, 204, 0.38); }
+        .z-direct  { background: rgba(0, 102, 204, 0.10); }
+        .z-diffuse { background: #d0d0d0; }
+        .z-overlap {
+            background: repeating-linear-gradient(45deg,
+                rgba(0, 102, 204, 0.38) 0 6px, #d0d0d0 6px 12px);
+        }
+        .zone-mark {
+            position: absolute;
+            top: -3px;
+            bottom: -3px;
+            width: 0;
+            border-left: 2px solid #333;
+        }
+        .zone-mark span {
+            position: absolute;
+            top: 24px;
+            transform: translateX(-50%);
+            font-size: 0.72em;
+            color: #555;
+            white-space: nowrap;
+        }
+        .zone-mark.m-h { border-left-style: dashed; }
+        #zone-hint { margin: 0 0 8px 0; }
+        .quick {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px 12px;
+        }
+        .seg button:disabled { opacity: 0.4; cursor: default; }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .control-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        label {
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        .value-display {
+            font-family: monospace;
+            background: #eee;
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: inline-block;
+            min-width: 70px;
+            text-align: right;
+        }
+        .areas {
+            display: grid;
+            grid-template-columns: 3fr 2fr;
+            gap: 20px;
+        }
+        .panel {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 12px 15px;
+            background: white;
+            min-width: 0;
+        }
+        .panel h2 {
+            font-size: 1.05em;
+            color: #555;
+            margin: 0 0 10px 0;
+        }
+        .placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 260px;
+            background: #f9f9f9;
+            border: 1px dashed #ddd;
+            border-radius: 4px;
+            color: #666;
+            font-size: 0.9em;
+            text-align: center;
+            padding: 10px;
+        }
+        [hidden] { display: none !important; }
+        .full { grid-column: 1 / -1; }
+        .freq-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+        .freq-fig { flex: 3 1 420px; min-width: 0; }
+        .polar-fig { flex: 1 1 240px; margin: 0; min-width: 0; }
+        .intro { background: #f9f9f9; }
+        .intro ol {
+            margin: 0;
+            padding-left: 1.4em;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 8px 28px;
+            font-size: 0.9em;
+            line-height: 1.45;
+            color: #444;
+        }
+        .intro li b { color: #333; }
+        .map-block { margin-top: 16px; }
+        .map-block h3 { font-size: 0.98em; color: #555; margin: 0 0 8px 0; }
+        #map-canvas { cursor: crosshair; }
+        .tech-grid {
+            display: grid;
+            grid-template-columns: 3fr 2fr;
+            gap: 20px;
+        }
+        .sub { min-width: 0; }
+        .sub h3 {
+            font-size: 0.98em;
+            color: #555;
+            margin: 0 0 8px 0;
+        }
+        .tabs { flex-wrap: wrap; }
+        .tabs button { font-size: 0.88em; text-align: left; }
+        .values summary {
+            font-size: 1.05em;
+            font-weight: bold;
+            color: #555;
+            cursor: pointer;
+        }
+        .values[open] summary { margin-bottom: 10px; }
+        .explain {
+            max-width: 760px;
+            margin: 0 0 12px 0;
+            font-size: 0.9em;
+            line-height: 1.45;
+            color: #555;
+        }
+        .values table {
+            width: 100%;
+            max-width: 640px;
+            border-collapse: collapse;
+            font-size: 0.92em;
+        }
+        .note {
+            margin: 8px 0 0 0;
+            font-size: 0.85em;
+            color: #666;
+            font-style: italic;
+        }
+        .values td {
+            padding: 5px 4px;
+            border-bottom: 1px solid #eee;
+        }
+        .values td.val {
+            font-family: monospace;
+            text-align: right;
+            white-space: nowrap;
+        }
+        .info {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        footer {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+            font-size: 0.8em;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .wave-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .time-fig { margin: 0; }
+        .freq-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px 14px;
+            margin-bottom: 8px;
+        }
+        .eq-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px 12px;
+            margin-bottom: 8px;
+        }
+        .eq-label {
+            font-weight: bold;
+            color: #555;
+            font-size: 0.9em;
+        }
+        .eq-other {
+            font-weight: normal;
+            color: #666;
+            font-size: 0.8em;
+        }
+        .zoom-hint {
+            flex: 1 1 auto;
+            text-align: right;
+            font-size: 0.8em;
+            color: #666;
+        }
+        .btn {
+            font-family: Arial, sans-serif;
+            font-size: 0.85em;
+            padding: 4px 10px;
+            border: 1px solid #0066cc;
+            border-radius: 4px;
+            background: white;
+            color: #0066cc;
+            cursor: pointer;
+        }
+        .btn:disabled {
+            border-color: #ddd;
+            color: #999;
+            cursor: default;
+        }
+        #freq-canvas { cursor: crosshair; }
+        .seg button {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .freq-patterns button.active {
+            background: white;
+            border-color: #999;
+            color: #333;
+        }
+        .freq-patterns button:not(.active) { opacity: 0.55; text-decoration: line-through; }
+        .time-controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px 14px;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+        .time-scale {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1 1 200px;
+        }
+        .time-scale input { flex: 1; min-width: 80px; }
+        .time-scale[hidden] { display: none; }
+        .wave-row figure {
+            margin: 0;
+            min-width: 0;
+        }
+        .wave-main { flex: 2.2 1 260px; }
+        .wave-zoom { flex: 1 1 140px; }
+        figcaption {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 4px;
+            text-align: center;
+        }
+        .hint {
+            margin: 8px 0 0 0;
+            padding: 6px 10px;
+            font-size: 0.85em;
+            color: #555;
+            background: #f9f9f9;
+            border-left: 3px solid #0066cc;
+            border-radius: 4px;
+        }
+        @media (max-width: 800px) {
+            body { margin: 10px; }
+            .container { padding: 15px; }
+            .areas { grid-template-columns: 1fr; }
+            .tech-grid { grid-template-columns: 1fr; }
+            .lang-switch { position: static; justify-content: flex-end; margin-bottom: 8px; }
+        }
+    
+        /* simplified version */
+        .controls-simple {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px 12px;
+        }
+        .room-rh { font-size: 0.85em; color: #666; }
+        .full-link { font-size: 0.85em; color: #0066cc; }
+        .lang-switch .full-link { margin-right: 8px; align-self: center; }
+        .mics { margin-bottom: 8px; }
+        .mics button.active { background: white; border-color: #999; color: #333; }
+        .mics button:not(.active) { opacity: 0.55; text-decoration: line-through; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <div class="lang-switch" role="group" aria-label="Language">
+            <a class="full-link" href="../index.html" data-i18n="fullLink"></a>
+            <button type="button" id="fs-btn" class="fs-btn"></button>
+            <button type="button" data-lang="de">DE</button>
+            <button type="button" data-lang="en">EN</button>
+        </div>
+        <h1 data-i18n="title"></h1>
+        <p class="subtitle" data-i18n="subtitle"></p>
+    </header>
+
+    <section class="controls-simple">
+        <div class="control-group">
+            <div class="control-head">
+                <label for="sl-r" data-i18n="sliderR"></label>
+                <span class="value-display" id="val-r"></span>
+            </div>
+            <input type="range" id="sl-r" min="0" max="1000" step="1">
+        </div>
+        <div class="row">
+            <span class="eq-label" data-i18n="quickLabel"></span>
+            <div class="seg" id="quick"></div>
+        </div>
+        <div class="row">
+            <span class="eq-label" data-i18n="roomLabel"></span>
+            <div class="seg" role="group" id="room">
+                <button type="button" data-room="dry" data-i18n="room_dry"></button>
+                <button type="button" data-room="normal" data-i18n="room_normal"></button>
+                <button type="button" data-room="wet" data-i18n="room_wet"></button>
+            </div>
+            <span class="room-rh" id="room-rh"></span>
+        </div>
+    </section>
+
+    <main class="areas">
+        <details class="panel values full intro" id="intro">
+            <summary data-i18n="introTitle"></summary>
+            <ol id="intro-list"></ol>
+        </details>
+        <section class="panel full" id="scene">
+            <h2 data-i18n="sceneTitle"></h2>
+            <figure class="time-fig">
+                <canvas id="scene-canvas"></canvas>
+                <figcaption data-i18n="sceneCaption"></figcaption>
+            </figure>
+        </section>
+        <section class="panel full" id="freq">
+            <h2 data-i18n="freqTitle"></h2>
+            <div class="seg mics" role="group" id="mics"></div>
+            <figure class="time-fig">
+                <canvas id="freq-canvas"></canvas>
+                <figcaption data-i18n="freqCaption"></figcaption>
+            </figure>
+            <p class="note" data-i18n="modelNote"></p>
+        </section>
+    </main>
+
+    <footer>
+        <span data-i18n="footerText"></span>
+        <span id="version"></span>
+    </footer>
+</div>
+
+<!-- PHYSICS (copied from ../index.html): pure functions, no DOM access, console tests -->
+<script id="physics">
+'use strict';
+
+const Physics = (() => {
+    // Speed of sound in air (~20 °C)
+    const C = 343; // m/s
+    const F_REF = 1000; // normalisation frequency (datasheet convention), Hz
+    const FLOOR_DB = -40; // lower level limit (gradient null)
+
+    // ---- small complex helpers ------------------------------------------
+    const cx = (re, im = 0) => ({ re, im });
+    const cAdd = (a, b) => cx(a.re + b.re, a.im + b.im);
+    const cScale = (a, s) => cx(a.re * s, a.im * s);
+    const cAbs2 = (a) => a.re * a.re + a.im * a.im;
+
+    // ---- basic quantities -----------------------------------------------
+    const waveNumber = (f) => 2 * Math.PI * f / C;      // k = 2πf/c
+    const wavelength = (f) => C / f;                    // λ = c/f
+
+    // Particle velocity relative to p/ρc for a spherical wave from a point source:
+    // N = 1 − j/(kr)
+    // Source: Beranek & Mellow, Acoustics: Sound Fields and Transducers, 2012
+    // (specific acoustic impedance of a spherical wave).
+    const N = (kr) => cx(1, -1 / kr);
+    // |N| = sqrt(1 + 1/(kr)²)
+    const nMag = (kr) => Math.sqrt(1 + 1 / (kr * kr));
+    // Phase lag of v behind p: φ = arctan(1/(kr)), in degrees
+    const phaseDeg = (kr) => Math.atan(1 / kr) * 180 / Math.PI;
+    // Velocity excess v·ρc/p in dB: 20·log10|N|
+    const velocityExcessDb = (kr) => 20 * Math.log10(nMag(kr));
+    // Growth of the spherical surface within one wavelength: ((r+λ)/r)² − 1
+    const areaGrowth = (r, lambda) => Math.pow((r + lambda) / r, 2) - 1;
+    // Transition frequency where k·r = 1  →  f = c/(2πr)
+    const transitionFreq = (r) => C / (2 * Math.PI * r);
+    // Absolute amplitudes including 1/r, relative to p at r = 1 m (point source:
+    // p ∝ 1/r, v·ρc = p·N; Beranek & Mellow 2012)
+    const R_REF = 1; // m
+    const pressureRel = (r) => R_REF / r;
+    const velocityRel = (kr, r) => nMag(kr) * R_REF / r;
+    const pressureLevelDb = (r) => 20 * Math.log10(pressureRel(r));
+    const velocityLevelDb = (kr, r) => 20 * Math.log10(velocityRel(kr, r));
+
+    // ---- capsule (simplified) -------------------------------------------
+    // Source for the simplified capsule model: Dickreiter, Dittel, Hoeg, Wöhr (Hrsg.),
+    // Handbuch der Tonstudiotechnik, 8. Aufl., De Gruyter 2014, Kap. Mikrofone
+    // (pressure build-up, directivity of pressure receivers, gradient error).
+    // Pressure build-up on axis (pressure receiver): G0² = (1 + 4(ka)²)/(1 + (ka)²), up to +6 dB
+    const G0sq = (ka) => (1 + 4 * ka * ka) / (1 + ka * ka);
+    // Directivity factor of the pressure receiver: Q = 1 + (ka)²
+    const Qfac = (ka) => 1 + ka * ka;
+    // Gradient error by path difference d: S = sin(kd/2)/(kd/2), null at f = c/d
+    const S = (kd) => {
+        const x = kd / 2;
+        return Math.abs(x) < 1e-9 ? 1 : Math.sin(x) / x;
+    };
+
+    // Capsule parameters at frequency f for diameter D (capsule=false → ideal transducer)
+    function capsuleParams(f, D, capsule) {
+        if (!capsule) return { g0: 1, q: 1, s: 1 };
+        const k = waveNumber(f);
+        const a = D / 2;
+        return { g0: Math.sqrt(G0sq(k * a)), q: Qfac(k * a), s: S(k * D) };
+    }
+
+    const PATTERNS = ['omni', 'cardioid', 'fig8'];
+
+    // ---- free-field response on axis (complex) ---------------------------
+    // Ideal: omni H_p = 1, figure-8 H_g = N, cardioid 0.5·H_p + 0.5·H_g.
+    // With capsule: omni G0, figure-8 S·N, cardioid 0.5·G0 + 0.5·S·N.
+    // near = false switches the proximity effect off (N = 1, plane wave).
+    function freeField(pattern, f, r, D, capsule, near = true) {
+        const { g0, s } = capsuleParams(f, D, capsule);
+        const n = near ? N(waveNumber(f) * r) : cx(1);
+        switch (pattern) {
+            case 'omni': return cx(g0);
+            case 'fig8': return cScale(n, s);
+            case 'cardioid': return cAdd(cx(0.5 * g0), cScale(n, 0.5 * s));
+            default: throw new Error('unknown pattern ' + pattern);
+        }
+    }
+
+    // ---- diffuse-field power Γ ------------------------------------------
+    // omni G0²/Q, figure-8 S²/3, cardioid (0.5·G0/√Q + 0.5·S)²/3
+    function diffusePower(pattern, f, D, capsule) {
+        const { g0, q, s } = capsuleParams(f, D, capsule);
+        switch (pattern) {
+            case 'omni': return g0 * g0 / q;
+            case 'fig8': return s * s / 3;
+            case 'cardioid': return Math.pow(0.5 * g0 / Math.sqrt(q) + 0.5 * s, 2) / 3;
+            default: throw new Error('unknown pattern ' + pattern);
+        }
+    }
+
+    // ---- equalisation (power factors, omni only) --------------------------
+    // Cardioid and figure-8 keep their standard first-order characteristics
+    // without additional equalisation.
+    // eq: { omni: 'none' | 'free' | 'intermediate' | 'diffuse' }
+    function eqFactor(pattern, f, D, eq, capsule) {
+        if (!eq || pattern !== 'omni') return 1;
+        const { g0, q } = capsuleParams(f, D, capsule);
+        // free-field EQ: 1/G0² → axis flat; diffuse-field EQ: Q/G0² → diffuse field flat
+        if (eq.omni === 'free') return 1 / (g0 * g0);
+        // intermediate EQ: √Q/G0² → on-axis boost is half of the diffuse-field EQ (in dB)
+        if (eq.omni === 'intermediate') return Math.sqrt(q) / (g0 * g0);
+        if (eq.omni === 'diffuse') return q / (g0 * g0);
+        return 1;
+    }
+
+    // ---- total energy and level -----------------------------------------
+    // opts: { capsule: bool, diffuse: bool, near: bool (default true), eq: {...},
+    //         part: 'direct' | 'diffuse' (optional: only one component) }
+    // With diffuse field: E = (r_H/r)²·|H_free|² + Γ, otherwise E = |H_free|².
+    function energy(pattern, f, r, rH, D, opts = {}) {
+        const cap = !!opts.capsule;
+        const eqf = eqFactor(pattern, f, D, opts.eq, cap);
+        if (opts.part === 'diffuse') return diffusePower(pattern, f, D, cap) * eqf;
+        const h2 = cAbs2(freeField(pattern, f, r, D, cap, opts.near !== false));
+        if (opts.part === 'direct') return h2 * eqf;
+        const e = opts.diffuse ? Math.pow(rH / r, 2) * h2 + diffusePower(pattern, f, D, cap) : h2;
+        return e * eqf;
+    }
+
+    // ---- simplified polar pattern of the omni ----------------------------
+    // First-order approximation D(θ) = (1 − B) + B·cos θ with the same directivity
+    // factor Q: (1 − B)² + B²/3 = 1/Q  →  B = 3/4 · (1 − √(1 − 4/3 · (1 − 1/Q))).
+    // Q is limited to 4 (largest Q a first-order pattern can reach, B = 0.75).
+    // Directivity factor of first-order patterns: e.g. Dickreiter et al. 2014.
+    const Q_POLAR_MAX = 4;
+    function polarB(q) {
+        const qq = Math.min(Math.max(q, 1), Q_POLAR_MAX);
+        return 0.75 * (1 - Math.sqrt(Math.max(0, 1 - 4 / 3 * (1 - 1 / qq))));
+    }
+    // Omni polar pattern at f: on-axis value scaled with G0 (pressure build-up)
+    function omniPolar(f, D) {
+        const ka = waveNumber(f) * D / 2;
+        const q = Qfac(ka);
+        return { q, qShown: Math.min(q, Q_POLAR_MAX), b: polarB(q), g0: Math.sqrt(G0sq(ka)) };
+    }
+
+    // Level in dB, not normalised
+    const levelDb = (pattern, f, r, rH, D, opts) =>
+        10 * Math.log10(energy(pattern, f, r, rH, D, opts));
+
+    // Level normalised to 1 kHz (datasheet convention), floored at −40 dB
+    function levelNormDb(pattern, f, r, rH, D, opts) {
+        const l = levelDb(pattern, f, r, rH, D, opts) - levelDb(pattern, F_REF, r, rH, D, opts);
+        return Number.isFinite(l) ? Math.max(l, FLOOR_DB) : FLOOR_DB;
+    }
+
+    // Direct-to-diffuse ratio of the omni at f, in dB: (r_H/r)²·G0² / Γ = (r_H/r)²·Q
+    function directDiffuseDb(f, r, rH, D, capsule) {
+        const { g0 } = capsuleParams(f, D, capsule);
+        return 10 * Math.log10(Math.pow(rH / r, 2) * g0 * g0 / diffusePower('omni', f, D, capsule));
+    }
+
+    return {
+        C, F_REF, FLOOR_DB, PATTERNS,
+        waveNumber, wavelength, N, nMag, phaseDeg, velocityExcessDb, areaGrowth, transitionFreq,
+        R_REF, pressureRel, velocityRel, pressureLevelDb, velocityLevelDb,
+        G0sq, Qfac, S, freeField, diffusePower, eqFactor,
+        energy, levelDb, levelNormDb, directDiffuseDb,
+        Q_POLAR_MAX, polarB, omniPolar,
+        cAbs2
+    };
+})();
+
+// ---- console tests (plausibility checks from CLAUDE.md) -----------------
+function runPhysicsTests(log = console) {
+    const P = Physics;
+    const ideal = { capsule: false, diffuse: false };
+    const db = (p, f, r, o = ideal) => P.levelDb(p, f, r, 1, 0.025, o);
+    const results = [];
+    const check = (name, value, expected, tol) => {
+        const ok = Math.abs(value - expected) <= tol;
+        results.push({ test: name, value: +value.toFixed(3), expected, tol, ok });
+    };
+    const checkTrue = (name, ok, value = '') => results.push({ test: name, value, expected: true, tol: '', ok });
+
+    // k·r = 1
+    const f1 = 1000, rKr1 = 1 / P.waveNumber(f1);
+    check('kr=1: phase φ [deg]', P.phaseDeg(1), 45, 1e-9);
+    check('kr=1: figure-8 [dB]', db('fig8', f1, rKr1), 3.0, 0.05);
+    check('kr=1: cardioid [dB]', db('cardioid', f1, rKr1), 1.0, 0.05);
+
+    // r = 5 cm, 100 Hz (not normalised)
+    check('5 cm/100 Hz: figure-8 [dB]', db('fig8', 100, 0.05), 20.8, 0.1);
+    check('5 cm/100 Hz: cardioid [dB]', db('cardioid', 100, 0.05), 14.9, 0.1);
+
+    // Omni: no proximity effect at any distance
+    let maxOmni = 0;
+    for (const r of [0.01, 0.03, 0.1, 0.3, 1, 3, 10])
+        for (const f of [20, 50, 100, 1000, 10000, 20000])
+            maxOmni = Math.max(maxOmni, Math.abs(db('omni', f, r)));
+    check('omni: max proximity effect [dB]', maxOmni, 0, 1e-9);
+
+    // r = 3 m, from 100 Hz: figure-8 and cardioid within 0.5 dB of the far field
+    let max3m = 0;
+    for (let f = 100; f <= 20000; f *= 1.05)
+        for (const p of ['fig8', 'cardioid'])
+            max3m = Math.max(max3m, Math.abs(db(p, f, 3)));
+    checkTrue('3 m, f ≥ 100 Hz: deviation < 0.5 dB', max3m < 0.5, +max3m.toFixed(3));
+
+    // r = r_H, omni: total level 3 dB above direct sound
+    for (const capsule of [false, true]) {
+        const o = { capsule, diffuse: true };
+        const rH = 1, f = 100, D = 0.025;
+        const total = P.levelDb('omni', f, rH, rH, D, o);
+        const direct = 10 * Math.log10(P.cAbs2(P.freeField('omni', f, rH, D, capsule)));
+        check(`r=r_H omni total − direct [dB]${capsule ? ' (capsule, 100 Hz)' : ''}`, total - direct, 3.0, 0.05);
+    }
+
+    // Figure-8: null at f = c/D (D = 25 mm → ~13.7 kHz)
+    const fNull = P.C / 0.025;
+    check('figure-8 null f = c/D [Hz]', fNull, 13720, 1);
+    check('figure-8 S at c/D', P.S(P.waveNumber(fNull) * 0.025), 0, 1e-9);
+    check('figure-8 level at c/D, floored [dB]',
+        P.levelNormDb('fig8', fNull, 1, 1, 0.025, { capsule: true, diffuse: false }), P.FLOOR_DB, 1e-9);
+
+    // Omni diffuse-field equalised, D = 25 mm, 10 kHz: on-axis boost ≈ 10·log10(1+(ka)²) ≈ 8.0 dB
+    const oDf = { capsule: true, diffuse: false, eq: { omni: 'diffuse' } };
+    const ka = P.waveNumber(10000) * 0.0125;
+    check('omni DF-eq axis boost 10 kHz [dB]', P.levelDb('omni', 10000, 1, 1, 0.025, oDf), 8.0, 0.1);
+    check('  ... equals 10·log10(1+(ka)²)', P.levelDb('omni', 10000, 1, 1, 0.025, oDf),
+        10 * Math.log10(1 + ka * ka), 1e-9);
+
+    // Omni diffuse-field equalised: diffuse-field power flat (Γ·Q/G0² = 1)
+    let maxDf = 0;
+    for (let f = 20; f <= 20000; f *= 1.1)
+        maxDf = Math.max(maxDf, Math.abs(10 * Math.log10(
+            P.diffusePower('omni', f, 0.025, true) * P.eqFactor('omni', f, 0.025, { omni: 'diffuse' }, true))));
+    check('omni DF-eq diffuse field flat [dB]', maxDf, 0, 1e-9);
+    // Omni free-field equalised, far beyond r_H (10 m, r_H = 0.3 m): treble loss ≈ −10·log10(Q)
+    const oFfDiff = { capsule: true, diffuse: true, eq: { omni: 'free' } };
+    const kaF = P.waveNumber(10000) * 0.0125;
+    check('omni FF-eq, r ≫ r_H, 10 kHz re 1 kHz [dB]',
+        P.levelNormDb('omni', 10000, 10, 0.3, 0.025, oFfDiff),
+        -10 * Math.log10(1 + kaF * kaF) + 10 * Math.log10(1 + Math.pow(P.waveNumber(1000) * 0.0125, 2)), 0.1);
+
+    // Intermediate EQ: on-axis boost exactly half of the diffuse-field EQ (in dB)
+    const oAx = (eqm) => ({ capsule: true, diffuse: false, eq: { omni: eqm } });
+    for (const f of [5000, 10000, 20000])
+        check(`intermediate EQ axis boost = ½ DF-eq, ${f / 1000} kHz [dB]`,
+            P.levelDb('omni', f, 1, 1, 0.025, oAx('intermediate')),
+            P.levelDb('omni', f, 1, 1, 0.025, oAx('diffuse')) / 2, 1e-9);
+
+    // Room view: no proximity effect (N = 1), even at r = 0.3 m and 20 Hz
+    const noNear = { capsule: false, diffuse: false, near: false };
+    let maxNoNear = 0;
+    for (const p of P.PATTERNS) maxNoNear = Math.max(maxNoNear, Math.abs(P.levelNormDb(p, 20, 0.3, 1, 0.025, noNear)));
+    check('near field off: 0.3 m, 20 Hz re 1 kHz [dB]', maxNoNear, 0, 1e-9);
+
+    // Distance map value: figure-8, r = 5 cm, 100 Hz re 1 kHz ≈ +17 dB (ideal, no diffuse part)
+    check('map: figure-8, 5 cm, 100 Hz re 1 kHz [dB]',
+        P.levelNormDb('fig8', 100, 0.05, 1, 0.025, { capsule: false, diffuse: false }), 17.4, 0.2);
+
+    // Simplified omni polar pattern: B from Q
+    check('polar B(Q = 1)', P.polarB(1), 0, 1e-12);
+    check('polar B(Q = 4) (limit)', P.polarB(4), 0.75, 1e-12);
+    check('polar B(Q = 10) limited to Q = 4', P.polarB(10), 0.75, 1e-12);
+    const b2 = P.polarB(2);
+    check('polar (1−B)² + B²/3 = 1/Q at Q = 2', Math.pow(1 - b2, 2) + b2 * b2 / 3, 0.5, 1e-12);
+
+    // Parts of the omni response: diffuse part only = G0²/Q
+    const kaP = P.waveNumber(10000) * 0.0125;
+    check('omni diffuse part 10 kHz = G0²/Q [dB]',
+        10 * Math.log10(P.energy('omni', 10000, 1, 1, 0.025, { capsule: true, part: 'diffuse' })),
+        10 * Math.log10(P.G0sq(kaP) / P.Qfac(kaP)), 1e-9);
+
+    // Omni free-field equalised: axis flat
+    const oFf = { capsule: true, diffuse: false, eq: { omni: 'free' } };
+    let maxFf = 0;
+    for (let f = 20; f <= 20000; f *= 1.1) maxFf = Math.max(maxFf, Math.abs(P.levelNormDb('omni', f, 1, 1, 0.025, oFf)));
+    check('omni FF-eq axis flat [dB]', maxFf, 0, 1e-9);
+
+    // Normalisation to 1 kHz: 0 dB at 1 kHz; 5 cm/100 Hz cardioid re 1 kHz
+    const o1 = { capsule: false, diffuse: false };
+    let maxRef = 0;
+    for (const p of P.PATTERNS) maxRef = Math.max(maxRef, Math.abs(P.levelNormDb(p, 1000, 0.05, 1, 0.025, o1)));
+    check('normalised level at 1 kHz [dB]', maxRef, 0, 1e-9);
+    check('5 cm: cardioid 100 Hz re 1 kHz [dB]', P.levelNormDb('cardioid', 100, 0.05, 1, 0.025, o1),
+        db('cardioid', 100, 0.05) - db('cardioid', 1000, 0.05), 1e-9);
+
+    // Absolute levels relative to p at 1 m (1/r law)
+    check('p level at 1 m [dB]', P.pressureLevelDb(1), 0, 1e-9);
+    check('p level at 10 cm [dB]', P.pressureLevelDb(0.1), 20, 1e-9);
+    check('p level at 10 m [dB]', P.pressureLevelDb(10), -20, 1e-9);
+    const kr5 = P.waveNumber(100) * 0.05;
+    check('5 cm/100 Hz: v·ρc level − p level = velocity excess [dB]',
+        P.velocityLevelDb(kr5, 0.05) - P.pressureLevelDb(0.05), 20.8, 0.1);
+
+    // Omni capsule: pressure build-up approaches +6 dB
+    check('omni G0² high-frequency limit [dB]', 10 * Math.log10(P.G0sq(1e6)), 6.02, 0.01);
+
+    const failed = results.filter(r => !r.ok).length;
+    if (log && log.table) log.table(results);
+    if (log) log[failed ? 'error' : 'log'](`Physics tests: ${results.length - failed}/${results.length} passed`);
+    return { results, failed };
+}
+</script>
+
+<!-- Microphone models of the simplified version -->
+<script id="simple-physics">
+'use strict';
+
+// Microphone models of the simplified version, built on Physics (same file, above).
+// No DOM access.
+const SimplePhysics = (() => {
+    const P = Physics;
+
+    // Ribbon treble roll-off, schematic: 2nd-order low-pass magnitude² (Butterworth)
+    // |H|² = 1 / (1 + (f/fc)⁴), fc = 12 kHz → about −2 dB at 10 kHz, −9 dB at 20 kHz.
+    // Assumption for teaching purposes (typical gentle treble loss of ribbon microphones),
+    // not the data of a specific model. No comb filter / gradient error.
+    const RIBBON_FC = 12000;
+    const ribbonRolloffPow = (f) => 1 / (1 + Math.pow(f / RIBBON_FC, 4));
+
+    // Energy at the microphone for f, r, r_H, capsule diameter D
+    //  omniFF   – omni with capsule, free-field equalised
+    //  omniDF   – omni with capsule, diffuse-field equalised
+    //  cardioid – cardioid with capsule (pressure build-up, gradient error)
+    //  ribbon   – ideal figure-8 (proximity effect, diffuse power 1/3) × treble roll-off
+    // near = false: same microphone without proximity effect (N = 1), used as reference
+    function micEnergy(mic, f, r, rH, D, near = true) {
+        const all = { capsule: true, diffuse: true, near };
+        switch (mic) {
+            case 'omniFF':   return P.energy('omni', f, r, rH, D, { ...all, eq: { omni: 'free' } });
+            case 'omniDF':   return P.energy('omni', f, r, rH, D, { ...all, eq: { omni: 'diffuse' } });
+            case 'cardioid': return P.energy('cardioid', f, r, rH, D, all);
+            case 'ribbon':   return P.energy('fig8', f, r, rH, D, { ...all, capsule: false }) * ribbonRolloffPow(f);
+            default: throw new Error('unknown microphone ' + mic);
+        }
+    }
+
+    // Level relative to the same microphone at 1 kHz WITHOUT proximity effect, floored at −40 dB.
+    // Unlike a plain 1-kHz normalisation this keeps the treble at its true level close to the
+    // source: the proximity effect still acts at 1 kHz for small distances (e.g. figure-8 at
+    // 5 cm: +3.4 dB), which would otherwise pull the whole curve down above 1 kHz.
+    function micLevelNormDb(mic, f, r, rH, D) {
+        const l = 10 * Math.log10(micEnergy(mic, f, r, rH, D) / micEnergy(mic, P.F_REF, r, rH, D, false));
+        return Number.isFinite(l) ? Math.max(l, P.FLOOR_DB) : P.FLOOR_DB;
+    }
+
+    return { RIBBON_FC, ribbonRolloffPow, micEnergy, micLevelNormDb };
+})();
+
+// ---- console tests of the simplified version ----------------------------
+function runSimpleTests(log = console) {
+    const S = SimplePhysics, P = Physics;
+    const results = [];
+    const check = (name, value, expected, tol) =>
+        results.push({ test: name, value: +value.toFixed(3), expected, tol, ok: Math.abs(value - expected) <= tol });
+
+    check('ribbon roll-off at fc [dB]', 10 * Math.log10(S.ribbonRolloffPow(S.RIBBON_FC)), -3.01, 0.01);
+    check('ribbon roll-off 20 kHz [dB]', 10 * Math.log10(S.ribbonRolloffPow(20000)), -9.4, 0.1);
+    check('ribbon roll-off 1 kHz [dB] (no effect in the mids)', 10 * Math.log10(S.ribbonRolloffPow(1000)), 0, 0.01);
+    // Reference without proximity effect (r_H = 100 m → practically no diffuse share):
+    // ribbon at 5 cm, 100 Hz = ideal figure-8 boost (CLAUDE.md: +20.8 dB, not normalised)
+    check('ribbon 5 cm: 100 Hz [dB]', S.micLevelNormDb('ribbon', 100, 0.05, 100, 0.025), 20.8, 0.1);
+    // at 1 kHz the proximity effect still acts at 5 cm: figure-8 +3.4 dB, cardioid ≈ +1.1 dB (+ capsule)
+    check('ribbon 5 cm: 1 kHz [dB]', S.micLevelNormDb('ribbon', 1000, 0.05, 100, 0.025), 3.4, 0.1);
+    // the treble is NOT lowered by the proximity effect: ribbon at 10 kHz = roll-off only
+    check('ribbon 5 cm: 10 kHz = roll-off only [dB]', S.micLevelNormDb('ribbon', 10000, 0.05, 100, 0.025),
+        10 * Math.log10(S.ribbonRolloffPow(10000)), 0.1);
+    // omni free-field equalised: flat on axis close to the source (no diffuse share)
+    check('omni FF, 5 cm, r_H = 100 m: 10 kHz [dB]', S.micLevelNormDb('omniFF', 10000, 0.05, 100, 0.025), 0, 0.01);
+    // omni diffuse-field equalised: flat far beyond r_H
+    check('omni DF, 10 m, r_H = 0.3 m: 10 kHz [dB]', S.micLevelNormDb('omniDF', 10000, 10, 0.3, 0.025), 0, 0.1);
+    // far away (3 m, 1 kHz) the reference and the curve coincide: about 0 dB for all microphones
+    let m = 0;
+    for (const mic of ['omniFF', 'omniDF', 'cardioid', 'ribbon'])
+        m = Math.max(m, Math.abs(S.micLevelNormDb(mic, 1000, 3, 1, 0.025)));
+    check('all microphones ≈ 0 dB at 1 kHz, 3 m', m, 0, 0.1);
+
+    const failed = results.filter(r => !r.ok).length;
+    if (log && log.table) log.table(results);
+    if (log) log[failed ? 'error' : 'log'](`Simplified version tests: ${results.length - failed}/${results.length} passed`);
+    return { results, failed };
+}
+</script>
+
+<!-- UI -->
+<script>
+'use strict';
+
+const VERSION = '0.1.0';
+
+// ---- central strings object (DE: Du-Form) --------------------------------
+const STRINGS = {
+    de: {
+        title: 'Mikrofon im Schallfeld – einfach',
+        subtitle: 'Wie sich der Klang eines Mikrofons mit dem Abstand zur Quelle verändert',
+        fullLink: 'Zur ausführlichen Version',
+        sliderR: 'Abstand Mikrofon – Quelle',
+        roomLabel: 'Raum:',
+        room_dry: 'trocken (Studio)',
+        room_normal: 'normal (Saal)',
+        room_wet: 'hallig (Kirche)',
+        roomRH: 'Hallradius ca. {rh}',
+        quickLabel: 'Schnellwahl:',
+        qVocal: 'Gesang 5 cm',
+        qInstr: 'Instrument 30 cm',
+        qRH: 'Hallradius',
+        qRoom: 'Raummikrofon 8 m',
+        introTitle: 'So funktioniert’s',
+        intro: [
+            ['Ganz nah', 'Niere und Bändchen heben die Bässe an, je näher du kommst (Nahbesprechungseffekt). '
+                + 'Die Kugel tut das nicht.'],
+            ['Weiter weg', 'Mit wachsendem Abstand kommt immer mehr Raumklang dazu. Hinter dem Hallradius ist der '
+                + 'Nachhall lauter als der direkte Schall – das Mikrofon klingt hallig und meist dumpfer.'],
+            ['Kugel: zwei Entzerrungen', 'Freifeldentzerrt klingt die Kugel nah an der Quelle linear, '
+                + 'weit weg eher dumpf. Diffusfeldentzerrt ist es umgekehrt: weit weg linear, nah eher hell.'],
+            ['Bändchen', 'Das Bändchen ist eine Acht mit weichen, leicht abfallenden Höhen. '
+                + 'Nah an der Quelle hat es einen starken Nahbesprechungseffekt.']
+        ],
+        sceneTitle: '1 – Mikrofon und Quelle',
+        sceneCaption: 'Draufsicht, schematisch. Pfeildicke = Anteil von Direkt- und Raumschall am Mikrofon. '
+            + 'Steht das Mikrofon nah an der Quelle, zoomt die Ansicht auf den Kopf.',
+        sceneStage: 'Bühne',
+        sceneEdge: 'Bühnenkante',
+        sceneAudience: 'Publikum',
+        sceneRH: 'Hallradius',
+        sceneMic: 'Mikrofon',
+        sceneShare: 'Am Mikrofon: Direktschall {d} % · Raumschall {x} %',
+        sceneCloseUp: 'Nahansicht',
+        freqTitle: '2 – So klingt das Mikrofon in diesem Abstand',
+        freqCaption: 'Frequenzgang auf Achse. 0 dB = so laut, wie das Mikrofon bei 1 kHz ohne '
+            + 'Nahbesprechungseffekt klingt. Über 0 dB: lauter, unter 0 dB: leiser.',
+        freqAxis: 'Frequenz in Hz',
+        levelAxis: 'Pegel in dB',
+        bandBass: 'Bässe',
+        bandMid: 'Mitten',
+        bandHigh: 'Höhen',
+        mic_omniFF: 'Kugel, freifeldentzerrt',
+        mic_omniDF: 'Kugel, diffusfeldentzerrt',
+        mic_cardioid: 'Niere',
+        mic_ribbon: 'Bändchen (Acht)',
+        modelNote: 'Vereinfachtes Modell – reale Mikrofone weichen davon ab.',
+        footerText: 'Audiotools – Lehr-Tool Tonstudiotechnik',
+        version: 'Version',
+        fsEnter: 'Vollbild',
+        fsExit: 'Vollbild beenden',
+        fsNewWindow: 'Neues Fenster',
+        fsNewWindowTitle: 'Vollbild ist hier nicht erlaubt – das Tool öffnet sich in einem neuen Fenster'
+    },
+    en: {
+        title: 'Microphone in the Sound Field – simple',
+        subtitle: 'How the sound of a microphone changes with the distance to the source',
+        fullLink: 'Go to the detailed version',
+        sliderR: 'Distance microphone – source',
+        roomLabel: 'Room:',
+        room_dry: 'dry (studio)',
+        room_normal: 'normal (hall)',
+        room_wet: 'reverberant (church)',
+        roomRH: 'critical distance approx. {rh}',
+        quickLabel: 'Quick select:',
+        qVocal: 'Vocals 5 cm',
+        qInstr: 'Instrument 30 cm',
+        qRH: 'Critical distance',
+        qRoom: 'Room mic 8 m',
+        introTitle: 'How it works',
+        intro: [
+            ['Very close', 'Cardioid and ribbon boost the bass the closer you get (proximity effect). '
+                + 'The omni does not.'],
+            ['Further away', 'With growing distance more and more room sound is added. Beyond the critical '
+                + 'distance the reverb is louder than the direct sound – the microphone sounds reverberant and usually duller.'],
+            ['Omni: two equalisations', 'Free-field equalised, the omni sounds flat close to the source and rather dull '
+                + 'far away. Diffuse-field equalised it is the other way round: flat far away, rather bright up close.'],
+            ['Ribbon', 'The ribbon is a figure-8 with a soft, slightly falling treble. '
+                + 'Close to the source it has a strong proximity effect.']
+        ],
+        sceneTitle: '1 – Microphone and source',
+        sceneCaption: 'Top view, schematic. Arrow width = share of direct and room sound at the microphone. '
+            + 'When the microphone is close to the source, the view zooms in on the head.',
+        sceneStage: 'Stage',
+        sceneEdge: 'Stage edge',
+        sceneAudience: 'Audience',
+        sceneRH: 'Critical distance',
+        sceneMic: 'Microphone',
+        sceneShare: 'At the microphone: direct sound {d} % · room sound {x} %',
+        sceneCloseUp: 'Close-up',
+        freqTitle: '2 – How the microphone sounds at this distance',
+        freqCaption: 'Frequency response on axis. 0 dB = as loud as the microphone sounds at 1 kHz '
+            + 'without proximity effect. Above 0 dB: louder, below 0 dB: quieter.',
+        freqAxis: 'Frequency in Hz',
+        levelAxis: 'Level in dB',
+        bandBass: 'Bass',
+        bandMid: 'Mids',
+        bandHigh: 'Treble',
+        mic_omniFF: 'Omni, free-field equalised',
+        mic_omniDF: 'Omni, diffuse-field equalised',
+        mic_cardioid: 'Cardioid',
+        mic_ribbon: 'Ribbon (figure-8)',
+        modelNote: 'Simplified model – real microphones deviate from it.',
+        footerText: 'Audiotools – teaching tool for studio engineering',
+        version: 'Version',
+        fsEnter: 'Full screen',
+        fsExit: 'Exit full screen',
+        fsNewWindow: 'New window',
+        fsNewWindowTitle: 'Full screen is not allowed here – the tool opens in a new window'
+    }
+};
+
+// ---- state ---------------------------------------------------------------
+const ROOMS = { dry: 2.5, normal: 1.0, wet: 0.5 };   // critical distance r_H per room type, m
+const state = {
+    lang: 'de',
+    r: 0.30,           // distance, m
+    room: 'normal',
+    rH: ROOMS.normal,  // critical distance, m (from the room type)
+    D: 0.025,          // capsule diameter, fixed (not a parameter in this version)
+    show: { omniFF: true, omniDF: true, cardioid: true, ribbon: true }
+};
+
+// ---- number formatting (comma for DE, point for EN) ----------------------
+const locale = () => (state.lang === 'de' ? 'de-DE' : 'en-US');
+const fmt = (x, digits = 2) =>
+    x.toLocaleString(locale(), { minimumFractionDigits: digits, maximumFractionDigits: digits });
+// 3 significant digits, grouping for large numbers
+function fmtSig(x, sig = 3) {
+    if (Math.abs(x) >= Math.pow(10, sig)) return Math.round(x).toLocaleString(locale());
+    return x.toLocaleString(locale(), { maximumSignificantDigits: sig });
+}
+const fmtLen = (m) => (m < 1 ? fmtSig(m * 100) + ' cm' : fmtSig(m) + ' m');
+const fmtFreq = (hz) => (hz < 1000 ? fmtSig(hz) + ' Hz' : fmtSig(hz / 1000) + ' kHz');
+const fmtDb = (db) => (db > 0.005 ? '+' : '') + fmt(db, 1) + ' dB';
+
+// ---- distance slider (logarithmic) ----------------------------------------
+const R_SLIDER = { min: 0.01, max: 10, steps: 1000 };
+const rToPos = (r) => Math.round(R_SLIDER.steps * Math.log(r / R_SLIDER.min) / Math.log(R_SLIDER.max / R_SLIDER.min));
+const posToR = (p) => R_SLIDER.min * Math.pow(R_SLIDER.max / R_SLIDER.min, p / R_SLIDER.steps);
+
+function buildControls() {
+    const input = document.getElementById('sl-r');
+    input.max = R_SLIDER.steps;
+    input.value = rToPos(state.r);
+    input.addEventListener('input', () => { state.r = posToR(+input.value); update(); });
+    document.querySelectorAll('#room button').forEach(b =>
+        b.addEventListener('click', () => { state.room = b.dataset.room; state.rH = ROOMS[state.room]; update(); }));
+    const box = document.getElementById('quick');
+    for (const q of QUICK) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.dataset.quick = q.key;
+        b.dataset.i18n = q.key;
+        b.addEventListener('click', () => { state.r = q.r(); input.value = rToPos(state.r); update(); });
+        box.appendChild(b);
+    }
+}
+
+const QUICK = [
+    { key: 'qVocal', r: () => 0.05 },
+    { key: 'qInstr', r: () => 0.3 },
+    { key: 'qRH',    r: () => state.rH },
+    { key: 'qRoom',  r: () => 8 }
+];
+
+function updateControls() {
+    const t = STRINGS[state.lang];
+    document.getElementById('val-r').textContent = fmtLen(state.r);
+    document.querySelectorAll('#room button').forEach(b => b.classList.toggle('active', b.dataset.room === state.room));
+    document.getElementById('room-rh').textContent = t.roomRH.replace('{rh}', fmtLen(state.rH));
+    for (const q of QUICK) {
+        const b = document.querySelector(`#quick [data-quick="${q.key}"]`);
+        b.classList.toggle('active', Math.abs(Math.log(state.r / q.r())) < 0.005);
+    }
+    document.querySelectorAll('#mics button').forEach(b => {
+        const on = state.show[b.dataset.mic];
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', String(on));
+    });
+}
+
+// ===========================================================================
+// Block 1 – hall sketch with automatic zoom
+// ===========================================================================
+const COLORS = {
+    text: '#333', label: '#555', muted: '#666', grid: '#ddd',
+    accent: '#0066cc', accentFill: 'rgba(0, 102, 204, 0.16)', warm: '#d6480f'
+};
+
+function setupCanvas(canvas, cssH) {
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = canvas.clientWidth;
+    if (canvas.width !== Math.round(cssW * dpr) || canvas.height !== Math.round(cssH * dpr)) {
+        canvas.width = Math.round(cssW * dpr);
+        canvas.height = Math.round(cssH * dpr);
+        canvas.style.height = cssH + 'px';
+    }
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+    return { ctx, w: cssW, h: cssH };
+}
+
+// World coordinates in metres: x points from the singer's mouth (x = 0) towards the
+// audience, y is lateral. The microphone sits on the axis at x = r, facing the mouth.
+// The visible section depends on the view: close-up (proximity effect), whole hall
+// (free-field/diffuse-field), or whole hall plus a close-up inset (overview).
+const SCENE = {
+    closeUp: { x0: -0.35, x1: 1.15, y0: -0.3, y1: 0.3 },
+    hall:    { x0: -4.5,  x1: 11.2, y0: -3.2, y1: 3.2 },
+    stageBack: -7, stageEdge: 2,          // stage from x = −7 m to the edge at x = 2 m
+    firstRow: 3, rowGap: 0.9, rows: 10,   // audience rows in front of the stage
+    seatGap: 0.55, seat: 0.36, aisle: 0.6,
+    headR: 0.09                           // head radius, m
+};
+
+// Share of direct and diffuse energy at the microphone (omni, broadband):
+// direct ∝ (r_H/r)², diffuse = 1 → equal at r = r_H (definition of the critical distance)
+function directShare(r, rH) {
+    const d = Math.pow(rH / r, 2);
+    return d / (d + 1);
+}
+
+function drawArrow(ctx, xa, ya, xb, yb, width, color) {
+    const len = Math.hypot(xb - xa, yb - ya);
+    if (len < 4) return;
+    const ux = (xb - xa) / len, uy = (yb - ya) / len;
+    const head = Math.min(len * 0.6, 6 + width * 1.6);
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineCap = 'butt';
+    ctx.beginPath();
+    ctx.moveTo(xa, ya);
+    ctx.lineTo(xb - ux * head * 0.8, yb - uy * head * 0.8);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(xb, yb);
+    ctx.lineTo(xb - ux * head - uy * head * 0.55, yb - uy * head + ux * head * 0.55);
+    ctx.lineTo(xb - ux * head + uy * head * 0.55, yb - uy * head - ux * head * 0.55);
+    ctx.closePath();
+    ctx.fill();
+}
+
+// Draw the scene for world window `win` into the pixel rectangle `rc`
+function drawSceneView(ctx, rc, win, opts = {}) {
+    const t = STRINGS[state.lang];
+    const s = Math.min(rc.w / (win.x1 - win.x0), rc.h / (win.y1 - win.y0));   // px per m
+    const cxw = (win.x0 + win.x1) / 2, cyw = (win.y0 + win.y1) / 2;
+    const X = (x) => rc.x + rc.w / 2 + (x - cxw) * s;
+    const Y = (y) => rc.y + rc.h / 2 + (y - cyw) * s;
+    const visX0 = cxw - rc.w / 2 / s, visX1 = cxw + rc.w / 2 / s;
+    const visY0 = cyw - rc.h / 2 / s, visY1 = cyw + rc.h / 2 / s;
+
+    ctx.save();
+    ctx.beginPath(); ctx.rect(rc.x, rc.y, rc.w, rc.h); ctx.clip();
+    ctx.fillStyle = 'white';
+    ctx.fillRect(rc.x, rc.y, rc.w, rc.h);
+    ctx.font = '11px Arial, sans-serif';
+
+    // Stage floor and stage edge
+    ctx.fillStyle = '#f1f1f1';
+    ctx.fillRect(X(SCENE.stageBack), Y(visY0), (SCENE.stageEdge - SCENE.stageBack) * s, (visY1 - visY0) * s);
+    ctx.strokeStyle = '#999';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(X(SCENE.stageEdge), Y(visY0)); ctx.lineTo(X(SCENE.stageEdge), Y(visY1)); ctx.stroke();
+
+    // Audience rows with a centre aisle
+    ctx.fillStyle = '#ebebeb';
+    for (let i = 0; i < SCENE.rows; i++) {
+        const x = SCENE.firstRow + i * SCENE.rowGap;
+        if (x > visX1 || x + SCENE.seat < visX0) continue;
+        for (let y = SCENE.aisle; y < Math.max(-visY0, visY1) + 1; y += SCENE.seatGap)
+            for (const sy of [y, -y - SCENE.seat])
+                ctx.fillRect(X(x), Y(sy), SCENE.seat * s, SCENE.seat * s);
+    }
+
+    // Labels (stage, edge, audience) if the hall is visible
+    if (!opts.closeUp) {
+        ctx.fillStyle = COLORS.muted;
+        ctx.textBaseline = 'top';
+        ctx.textAlign = 'left';
+        ctx.fillText(t.sceneStage, X(visX0) + 8, rc.y + 6);
+        ctx.save();
+        ctx.translate(X(SCENE.stageEdge) - 6, rc.y + rc.h - 8);
+        ctx.rotate(-Math.PI / 2);
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(t.sceneEdge, 0, 0);
+        ctx.restore();
+        const ax = X(SCENE.firstRow), aw = ctx.measureText(t.sceneAudience).width;
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.fillRect(ax - 2, rc.y + 4, aw + 4, 15);
+        ctx.fillStyle = COLORS.muted;
+        ctx.fillText(t.sceneAudience, ax, rc.y + 6);
+    }
+
+    // Critical distance as a circle around the mouth
+    ctx.strokeStyle = COLORS.accent;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.arc(X(0), Y(0), state.rH * s, 0, 2 * Math.PI); ctx.stroke();
+    ctx.setLineDash([]);
+    {
+        // label at the top of the circle (or at the right, whichever is visible)
+        const label = `${t.sceneRH} = ${fmtLen(state.rH)}`;
+        const R = state.rH, m = 0.06 * (visY1 - visY0);
+        // candidate points on the circle: 45° up-right, crossing with the top edge,
+        // crossing with the right edge
+        const cand = [[R * Math.SQRT1_2, -R * Math.SQRT1_2]];
+        const yt = visY0 + m;
+        if (R > Math.abs(yt)) cand.push([Math.sqrt(R * R - yt * yt), yt]);
+        const xr = visX1 - 0.25 * (visX1 - visX0);
+        if (R > Math.abs(xr)) cand.push([xr, -Math.sqrt(R * R - xr * xr)]);
+        const lwPx = ctx.measureText(label).width + 10;
+        const ok = cand.find(([x, y]) => x > visX0 && X(x) + lwPx < rc.x + rc.w - 4 &&
+            y > visY0 + 0.5 * m && y < visY1);
+        if (ok) {
+            const lx = X(ok[0]), ly = Y(ok[1]);
+            const lw = ctx.measureText(label).width;
+            ctx.fillStyle = 'rgba(255,255,255,0.85)';
+            ctx.fillRect(lx + 2, ly - 7, lw + 4, 14);
+            ctx.fillStyle = COLORS.accent;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, lx + 4, ly);
+        }
+    }
+
+    // Singer: head with nose (pointing to +x) and ears, drawn at least 8 px in radius
+    const hr = Math.max(SCENE.headR * s, 8);
+    const hx = X(0) - hr, hy = Y(0);
+    ctx.fillStyle = '#ddd';
+    ctx.strokeStyle = COLORS.text;
+    ctx.lineWidth = 1.5;
+    for (const sgn of [-1, 1]) {   // ears
+        ctx.beginPath();
+        ctx.ellipse(hx, hy + sgn * hr, hr * 0.22, hr * 0.32, 0, 0, 2 * Math.PI);
+        ctx.fill(); ctx.stroke();
+    }
+    ctx.beginPath(); ctx.arc(hx, hy, hr, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+    ctx.beginPath();   // nose
+    ctx.moveTo(hx + hr * 0.92, hy - hr * 0.2);
+    ctx.lineTo(hx + hr * 1.28, hy);
+    ctx.lineTo(hx + hr * 0.92, hy + hr * 0.2);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+    // Microphone on the axis at x = r, capsule towards the mouth
+    const r = state.r;
+    const inView = r <= visX1 - 0.02 * (visX1 - visX0);
+    const share = directShare(r, state.rH);
+    if (inView) {
+        const capR = Math.max(state.D / 2 * s, 4);
+        const mx = X(r) + capR, my = Y(0);          // capsule centre, front of capsule at x = r
+        // direct sound: arrow from the mouth to the capsule
+        drawArrow(ctx, X(0) + 3, my, mx - capR - 2, my, 1.2 + 6 * share, COLORS.accent);
+        // diffuse sound: short arrows from all around
+        const dw = 1 + 4.5 * (1 - share);
+        for (let k = 0; k < 8; k++) {
+            const a = (k + 0.5) * Math.PI / 4;
+            const r1 = capR + 34, r2 = capR + 8;
+            drawArrow(ctx, mx + r1 * Math.cos(a), my + r1 * Math.sin(a),
+                mx + r2 * Math.cos(a), my + r2 * Math.sin(a), dw, '#888');
+        }
+        // body (handle) pointing away from the source
+        const bodyL = Math.max(0.16 * s, 18), bodyW = Math.max(capR * 1.1, 5);
+        ctx.fillStyle = '#555';
+        ctx.fillRect(mx, my - bodyW / 2, bodyL, bodyW);
+        ctx.beginPath(); ctx.arc(mx, my, capR, 0, 2 * Math.PI);
+        ctx.fillStyle = COLORS.text; ctx.fill();
+        ctx.strokeStyle = 'white'; ctx.lineWidth = 1; ctx.stroke();
+
+        // distance dimension line below the axis
+        const dy = my + Math.max(hr, capR) + 46;
+        ctx.strokeStyle = COLORS.muted;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(X(0), dy - 5); ctx.lineTo(X(0), dy + 5);
+        ctx.moveTo(X(r), dy - 5); ctx.lineTo(X(r), dy + 5);
+        ctx.moveTo(X(0), dy); ctx.lineTo(X(r), dy);
+        ctx.stroke();
+        const lbl = 'r = ' + fmtLen(r);
+        const lw = ctx.measureText(lbl).width;
+        let lx = (X(0) + X(r)) / 2 - lw / 2;
+        if (X(r) - X(0) < lw + 8) lx = X(r) + 6;
+        ctx.fillStyle = COLORS.text;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(lbl, lx, dy + 4);
+    } else {
+        // microphone outside this section: point to it
+        const lbl = `${t.sceneMic}: r = ${fmtLen(r)} ►`;
+        ctx.fillStyle = COLORS.text;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(lbl, rc.x + rc.w - 6, Y(0) + 22);
+    }
+    ctx.restore();
+    return share;
+}
+
+// The view zooms to the close-up when the microphone is clearly inside the critical
+// distance: r below half of r_H (and at most 0.8 m, so that the close-up still fits).
+const closeUpLimit = () => Math.min(0.8, 0.5 * state.rH);
+const sceneZoom = { t: 0, target: 0, from: 0, start: 0, running: false };   // 0 = hall, 1 = close-up
+const ZOOM_MS = 700;
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+// Interpolate the world window between hall and close-up (geometric for a smooth zoom)
+function lerpWin(a, b, t) {
+    const e = t * t * (3 - 2 * t);   // smoothstep easing
+    const lin = (u, v) => u + (v - u) * e;
+    const wa = a.x1 - a.x0, wb = b.x1 - b.x0;
+    const w = wa * Math.pow(wb / wa, e);
+    const cx = lin((a.x0 + a.x1) / 2, (b.x0 + b.x1) / 2), cy = lin((a.y0 + a.y1) / 2, (b.y0 + b.y1) / 2);
+    const h = w * ((a.y1 - a.y0) / wa + ((b.y1 - b.y0) / wb - (a.y1 - a.y0) / wa) * e);
+    return { x0: cx - w / 2, x1: cx + w / 2, y0: cy - h / 2, y1: cy + h / 2 };
+}
+
+function setSceneTarget() {
+    const target = state.r <= closeUpLimit() ? 1 : 0;
+    if (target === sceneZoom.target) return;
+    sceneZoom.target = target;
+    if (reducedMotion.matches) { sceneZoom.t = target; return; }
+    sceneZoom.from = sceneZoom.t;
+    sceneZoom.start = performance.now();
+    if (!sceneZoom.running) { sceneZoom.running = true; requestAnimationFrame(zoomTick); }
+}
+
+function zoomTick(now) {
+    const p = Math.min(1, (now - sceneZoom.start) / ZOOM_MS);
+    sceneZoom.t = sceneZoom.from + (sceneZoom.target - sceneZoom.from) * p;
+    drawScene(document.getElementById('scene-canvas'));
+    if (p < 1) requestAnimationFrame(zoomTick);
+    else sceneZoom.running = false;
+}
+
+function drawScene(canvas) {
+    const t = STRINGS[state.lang];
+    const cssW = canvas.clientWidth;
+    const H = Math.round(Math.min(420, Math.max(240, cssW * 0.36)));
+    const { ctx, w, h } = setupCanvas(canvas, H);
+    const win = lerpWin(SCENE.hall, SCENE.closeUp, sceneZoom.t);
+    const share = drawSceneView(ctx, { x: 0, y: 0, w, h }, win, { closeUp: sceneZoom.t > 0.5 });
+
+    ctx.font = '12px Arial, sans-serif';
+    if (sceneZoom.t > 0.5) {
+        ctx.fillStyle = COLORS.muted;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(t.sceneCloseUp, 8, 6);
+    }
+    const txt = t.sceneShare.replace('{d}', fmtSig(Math.round(100 * share)))
+        .replace('{x}', fmtSig(Math.round(100 * (1 - share))));
+    const tw = ctx.measureText(txt).width;
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillRect(4, h - 26, tw + 12, 22);
+    ctx.fillStyle = COLORS.text;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(txt, 10, h - 15);
+}
+
+// ===========================================================================
+// Block 2 – frequency response of four microphones at the current distance
+// ===========================================================================
+// All effects are on: proximity effect, simplified capsule (D fixed), direct and
+// diffuse sound via the critical distance. Omni with free- or diffuse-field EQ.
+// The ribbon is modelled as an ideal figure-8 (no gradient error, no comb filter)
+// with a gentle treble roll-off (see SimplePhysics.ribbonRolloffPow).
+const MICS = {
+    omniFF:   { color: COLORS.accent, dash: [],     label: 'mic_omniFF' },
+    omniDF:   { color: COLORS.accent, dash: [6, 4], label: 'mic_omniDF' },
+    cardioid: { color: COLORS.text,   dash: [],     label: 'mic_cardioid' },
+    ribbon:   { color: COLORS.warm,   dash: [],     label: 'mic_ribbon' }
+};
+const FREQ = { height: 360, fMin: 20, fMax: 20000, dbMin: -30, dbMax: 30, dbStep: 10,
+    ticks: [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000],
+    bands: [['bandBass', 20, 250], ['bandMid', 250, 4000], ['bandHigh', 4000, 20000]] };
+let freqGeom = null, freqHover = null;
+
+const micLevel = (mic, f) => SimplePhysics.micLevelNormDb(mic, f, state.r, state.rH, state.D);
+
+function buildMics() {
+    const box = document.getElementById('mics');
+    for (const [key, st] of Object.entries(MICS)) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.dataset.mic = key;
+        b.innerHTML = `<svg width="22" height="8" aria-hidden="true"><line x1="1" y1="4" x2="21" y2="4"
+            stroke="${st.color}" stroke-width="2" stroke-dasharray="${st.dash.join(' ')}"/></svg>
+            <span data-i18n="${st.label}"></span>`;
+        b.addEventListener('click', () => { state.show[key] = !state.show[key]; update(); });
+        box.appendChild(b);
+    }
+    const canvas = document.getElementById('freq-canvas');
+    canvas.addEventListener('mousemove', (e) => {
+        if (!freqGeom) return;
+        const rc = canvas.getBoundingClientRect(), g = freqGeom;
+        const x = e.clientX - rc.left, y = e.clientY - rc.top;
+        freqHover = (x >= g.x0 && x <= g.x1 && y >= g.y0 && y <= g.y1) ? { x, y } : null;
+        drawFreq(canvas);
+    });
+    canvas.addEventListener('mouseleave', () => { freqHover = null; drawFreq(canvas); });
+}
+
+function drawTooltip(ctx, x, y, rows, x0, x1, y0, y1) {
+    ctx.font = '12px Arial, sans-serif';
+    const lineH = 16, pad = 6;
+    const bw = Math.max(...rows.map(r => {
+        ctx.font = (r.bold ? 'bold ' : '') + '12px Arial, sans-serif';
+        return ctx.measureText(r.text).width;
+    })) + 2 * pad;
+    const bh = rows.length * lineH + 2 * pad - 4;
+    let bx = x + 12, by = y - bh / 2;
+    if (bx + bw > x1) bx = x - 12 - bw;
+    by = Math.min(Math.max(by, y0 + 2), y1 - bh - 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.94)';
+    ctx.strokeStyle = '#bbb';
+    ctx.lineWidth = 1;
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.strokeRect(bx, by, bw, bh);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    rows.forEach((r, i) => {
+        ctx.font = (r.bold ? 'bold ' : '') + '12px Arial, sans-serif';
+        ctx.fillStyle = r.color;
+        ctx.fillText(r.text, bx + pad, by + pad + i * lineH);
+    });
+}
+
+function drawFreq(canvas) {
+    const t = STRINGS[state.lang];
+    const { ctx, w, h } = setupCanvas(canvas, FREQ.height);
+    const padL = 40, padR = 14, padT = 30, padB = 36;
+    const x0 = padL, x1 = w - padR, y0 = padT, y1 = h - padB;
+    const lMin = Math.log10(FREQ.fMin), lMax = Math.log10(FREQ.fMax);
+    const xAt = (f) => x0 + (Math.log10(f) - lMin) / (lMax - lMin) * (x1 - x0);
+    const fAt = (x) => Math.pow(10, lMin + (x - x0) / (x1 - x0) * (lMax - lMin));
+    const yAt = (db) => y0 + (FREQ.dbMax - db) / (FREQ.dbMax - FREQ.dbMin) * (y1 - y0);
+    freqGeom = { x0, x1, y0, y1 };
+
+    // frequency bands (bass / mids / treble) as light background with labels
+    ctx.font = '11px Arial, sans-serif';
+    FREQ.bands.forEach(([key, fa, fb], i) => {
+        ctx.fillStyle = i % 2 ? '#fafafa' : '#ffffff';
+        ctx.fillRect(xAt(fa), y0, xAt(fb) - xAt(fa), y1 - y0);
+        ctx.fillStyle = COLORS.muted;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(t[key], (xAt(fa) + xAt(fb)) / 2, y0 - 4);
+    });
+
+    // grid and axes
+    ctx.lineWidth = 1;
+    ctx.fillStyle = COLORS.muted;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let db = FREQ.dbMin; db <= FREQ.dbMax; db += FREQ.dbStep) {
+        const y = yAt(db);
+        ctx.strokeStyle = db === 0 ? '#999' : '#eee';
+        ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+        ctx.fillText((db > 0 ? '+' : db < 0 ? '−' : '') + Math.abs(db), x0 - 5, y);
+    }
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (const f of FREQ.ticks) {
+        const x = xAt(f);
+        ctx.strokeStyle = '#eee';
+        ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke();
+        ctx.fillText(f < 1000 ? String(f) : (f / 1000) + 'k', x, y1 + 5);
+    }
+    ctx.strokeStyle = COLORS.grid;
+    ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+    ctx.textAlign = 'right';
+    ctx.fillText(t.freqAxis, x1, y1 + 19);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(t.levelAxis, 4, y0 - 14);
+
+    // curves
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x0, y0, x1 - x0, y1 - y0); ctx.clip();
+    for (const [key, st] of Object.entries(MICS)) {
+        if (!state.show[key]) continue;
+        ctx.strokeStyle = st.color;
+        ctx.lineWidth = 2.2;
+        ctx.setLineDash(st.dash);
+        ctx.beginPath();
+        for (let x = x0; x <= x1; x += 1) {
+            const y = yAt(micLevel(key, fAt(x)));
+            x === x0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    ctx.restore();
+
+    // value readout at the mouse cursor
+    if (freqHover) {
+        const fh = fAt(freqHover.x);
+        ctx.strokeStyle = '#999';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(freqHover.x, y0); ctx.lineTo(freqHover.x, y1); ctx.stroke();
+        const rows = [{ text: fmtFreq(fh), color: COLORS.text, bold: true }];
+        for (const [key, st] of Object.entries(MICS)) {
+            if (!state.show[key]) continue;
+            const db = micLevel(key, fh);
+            ctx.fillStyle = st.color;
+            ctx.beginPath(); ctx.arc(freqHover.x, yAt(Math.max(FREQ.dbMin, Math.min(FREQ.dbMax, db))), 3, 0, 2 * Math.PI); ctx.fill();
+            rows.push({ text: `${t[st.label]}: ${fmtDb(db)}`, color: st.color });
+        }
+        drawTooltip(ctx, freqHover.x, freqHover.y, rows, x0, x1, y0, y1);
+    }
+}
+
+// ---- language, update ------------------------------------------------------
+function applyLanguage() {
+    const t = STRINGS[state.lang];
+    document.documentElement.lang = state.lang;
+    document.title = t.title;
+    document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t[el.dataset.i18n]; });
+    document.querySelectorAll('.lang-switch button[data-lang]').forEach(b =>
+        b.classList.toggle('active', b.dataset.lang === state.lang));
+    document.getElementById('version').textContent = `${t.version} ${VERSION}`;
+    const ol = document.getElementById('intro-list');
+    ol.innerHTML = '';
+    for (const [head, body] of t.intro) {
+        const li = document.createElement('li');
+        const b = document.createElement('b');
+        b.textContent = head + ': ';
+        li.appendChild(b);
+        li.appendChild(document.createTextNode(body));
+        ol.appendChild(li);
+    }
+    updateFullscreenButton();
+    update();
+}
+
+function update() {
+    updateControls();
+    setSceneTarget();
+    drawScene(document.getElementById('scene-canvas'));
+    drawFreq(document.getElementById('freq-canvas'));
+}
+
+// ---- full-screen mode ------------------------------------------------------
+// Uses the Fullscreen API (with webkit prefix for older Safari). If full screen is not
+// allowed (e.g. inside an iframe without allowfullscreen, as in some LMS embeddings),
+// the button opens the tool in a new window instead.
+const fsApi = {
+    enabled: () => !!(document.fullscreenEnabled || document.webkitFullscreenEnabled),
+    element: () => document.fullscreenElement || document.webkitFullscreenElement || null,
+    request: (el) => (el.requestFullscreen ? el.requestFullscreen() : Promise.resolve(el.webkitRequestFullscreen())),
+    exit: () => (document.exitFullscreen ? document.exitFullscreen() : Promise.resolve(document.webkitExitFullscreen()))
+};
+const openInNewWindow = () => window.open(location.href, '_blank', 'noopener');
+
+function updateFullscreenButton() {
+    const t = STRINGS[state.lang];
+    const b = document.getElementById('fs-btn');
+    const on = !!fsApi.element();
+    b.textContent = !fsApi.enabled() ? t.fsNewWindow : (on ? t.fsExit : t.fsEnter);
+    b.title = !fsApi.enabled() ? t.fsNewWindowTitle : '';
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', String(on));
+}
+
+function buildFullscreen() {
+    document.getElementById('fs-btn').addEventListener('click', () => {
+        if (!fsApi.enabled()) { openInNewWindow(); return; }
+        const p = fsApi.element() ? fsApi.exit() : fsApi.request(document.documentElement);
+        Promise.resolve(p).catch(openInNewWindow);
+    });
+    for (const ev of ['fullscreenchange', 'webkitfullscreenchange'])
+        document.addEventListener(ev, () => { updateFullscreenButton(); update(); });
+}
+
+// ---- init -----------------------------------------------------------------
+buildControls();
+buildMics();
+document.querySelectorAll('.lang-switch button[data-lang]').forEach(b =>
+    b.addEventListener('click', () => { state.lang = b.dataset.lang; applyLanguage(); }));
+buildFullscreen();
+sceneZoom.t = sceneZoom.target = state.r <= closeUpLimit() ? 1 : 0;
+applyLanguage();
+window.addEventListener('resize', () => update());
+runPhysicsTests();
+runSimpleTests();
+</script>
+</body>
+</html>
